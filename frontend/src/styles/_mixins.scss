@@ -1,0 +1,116 @@
+@import './variables';
+
+// Glassmorphism Panel
+@mixin glass-panel($bg-opacity: 0.05, $blur: 12px, $border-color: rgba(255, 255, 255, 0.08)) {
+  background: linear-gradient(135deg, rgba(255, 255, 255, $bg-opacity) 0%, rgba(255, 255, 255, calc($bg-opacity / 2.5)) 100%);
+  backdrop-filter: blur($blur);
+  -webkit-backdrop-filter: blur($blur);
+  border: 1px solid $border-color;
+}
+
+// Gold Border Accent
+@mixin gold-border($opacity: 0.2) {
+  border: 1px solid rgba(212, 175, 55, $opacity);
+  box-shadow: inset 0 0 10px rgba(212, 175, 55, calc($opacity / 2));
+}
+
+// Neon Glow Effect for Text / Icons
+@mixin glow-text($color: $color-gold-light, $spread: 10px) {
+  color: $color;
+  text-shadow: 0 0 $spread rgba($color, 0.6), 0 0 calc($spread * 2) rgba($color, 0.3);
+}
+
+// Box Glow Effect
+@mixin glow-box($color: $color-gold-base, $spread: 15px, $inset: false) {
+  @if $inset {
+    box-shadow: inset 0 0 $spread rgba($color, 0.4);
+  } @else {
+    box-shadow: 0 0 $spread rgba($color, 0.4);
+  }
+}
+
+// Flex Center Helper
+@mixin flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+// Premium Gaming Button Base
+@mixin gaming-button-base {
+  font-family: $font-headings;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all $transition-normal;
+  outline: none;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -50%;
+    width: 200%;
+    height: 100%;
+    background: linear-gradient(
+      to right,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.15) 30%,
+      rgba(255, 255, 255, 0.3) 50%,
+      rgba(255, 255, 255, 0.15) 70%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    transform: skewX(-25deg);
+    transition: 0.75s;
+    opacity: 0;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    
+    &::after {
+      left: 125%;
+      opacity: 1;
+      transition: all 0.75s ease-in-out;
+    }
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+    &::after {
+      display: none;
+    }
+  }
+}
+
+// Responsive Breakpoints
+@mixin respond-to($breakpoint) {
+  @if $breakpoint == 'mobile' {
+    @media (max-width: 576px) { @content; }
+  }
+  @else if $breakpoint == 'tablet' {
+    @media (max-width: 768px) { @content; }
+  }
+  @else if $breakpoint == 'desktop' {
+    @media (max-width: 992px) { @content; }
+  }
+  @else if $breakpoint == 'widescreen' {
+    @media (max-width: 1200px) { @content; }
+  }
+}
