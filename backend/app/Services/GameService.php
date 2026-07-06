@@ -360,7 +360,7 @@ class GameService
         }
 
         $card = Card::fromArray($cardData);
-        $currentTrick = $game->currentRound->tricks()->latestOfMany('trick_number')->first();
+        $currentTrick = $game->currentRound->tricks()->orderBy('trick_number', 'desc')->first();
 
         // Rules check (Follow suit rules)
         $leadCardRecord = $currentTrick->cards()->first();
@@ -523,7 +523,7 @@ class GameService
     private function evaluateTrickIfNeeded(Game $game): void
     {
         $round = $game->currentRound;
-        $currentTrick = $round->tricks()->latestOfMany('trick_number')->first();
+        $currentTrick = $round->tricks()->orderBy('trick_number', 'desc')->first();
 
         if ($currentTrick->cards()->count() < 4) {
             return;
@@ -765,7 +765,7 @@ class GameService
             $cards = json_decode($ph->cards_json, true);
             if (empty($cards)) return;
 
-            $currentTrick = $game->currentRound->tricks()->latestOfMany('trick_number')->first();
+            $currentTrick = $game->currentRound->tricks()->orderBy('trick_number', 'desc')->first();
             $leadCardRecord = $currentTrick->cards()->first();
             
             $cardToPlayData = null;
