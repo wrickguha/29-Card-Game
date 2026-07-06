@@ -117,10 +117,57 @@ export const Game: React.FC = () => {
       </div>
 
       {/* Main Playing felt */}
-      <div className="flex-1 min-h-[500px] relative rounded-3xl bg-[radial-gradient(circle_at_center,var(--color-poker-800)_0%,var(--color-poker-900)_50%,var(--color-premium-black)_100%)] border-2 border-gold-500/25 shadow-2xl p-6 overflow-hidden flex flex-col justify-between">
+      <div className="flex-1 min-h-[420px] relative rounded-3xl bg-[radial-gradient(circle_at_center,var(--color-poker-800)_0%,var(--color-poker-900)_50%,var(--color-premium-black)_100%)] border-2 border-gold-500/25 shadow-2xl p-6 overflow-hidden flex flex-col justify-between">
         
         {/* Table Felt Lighting glow */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.08)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
+
+        {/* Dedicated Trump Card Slot on the Table Felt */}
+        <div className="absolute top-6 left-6 z-20 flex flex-col items-center">
+          <span className="text-[9px] font-black uppercase text-gold-500/60 tracking-wider mb-1.5">Trump Card</span>
+          
+          {!gameState.trumpSuit ? (
+            <div className="w-12 h-18 rounded-lg border border-dashed border-gold-500/20 flex flex-col items-center justify-center text-[9px] font-black text-slate-700 bg-premium-black/20">
+              <span>Empty</span>
+            </div>
+          ) : !gameState.isTrumpRevealed ? (
+            /* Selected but hidden */
+            <button
+              onClick={() => {
+                if (gameState.highestBidder === 'SOUTH') {
+                  revealTrump();
+                } else {
+                  alert("Only the bidder can reveal the trump card privately, or it will be revealed automatically when a player cannot follow suit!");
+                }
+              }}
+              className="w-12 h-18 rounded-lg bg-gradient-to-b from-amber-600 to-amber-900 border border-gold-500/40 flex flex-col items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all group relative cursor-pointer"
+            >
+              {/* Premium card back pattern */}
+              <div className="absolute inset-0.5 rounded-[5px] border border-gold-500/10 bg-premium-black/60 flex flex-col items-center justify-center">
+                <span className="text-[10px] font-black text-gold-500">29</span>
+                <span className="text-[7px] uppercase font-bold tracking-widest text-gold-500/50 mt-0.5">7th</span>
+              </div>
+              
+              {/* Bidder private tooltip on hover */}
+              {gameState.highestBidder === 'SOUTH' && (
+                <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 hidden group-hover:block bg-premium-black/90 border border-gold-500 px-2 py-1 rounded text-[10px] font-black text-gold-400 whitespace-nowrap z-30">
+                  Your Trump: {gameState.trumpSuit} (Click to Reveal)
+                </div>
+              )}
+            </button>
+          ) : (
+            /* Revealed */
+            <div className="w-12 h-18 rounded-lg bg-premium-light border-2 border-gold-500 flex flex-col items-center justify-center shadow-lg shadow-gold-500/20 animate-neon-pulse animate-in zoom-in-50 duration-200">
+              <span className="text-xs font-black leading-none text-slate-200">{gameState.trumpSuit.slice(0, 1)}</span>
+              <span className="text-lg leading-none mt-1">
+                {gameState.trumpSuit === 'HEARTS' && <span className="text-red-500">♥</span>}
+                {gameState.trumpSuit === 'DIAMONDS' && <span className="text-red-500">♦</span>}
+                {gameState.trumpSuit === 'CLUBS' && <span className="text-slate-400">♣</span>}
+                {gameState.trumpSuit === 'SPADES' && <span className="text-slate-400">♠</span>}
+              </span>
+            </div>
+          )}
+        </div>
 
         {/* NORTH seat slot */}
         <div className="flex flex-col items-center mt-2">
