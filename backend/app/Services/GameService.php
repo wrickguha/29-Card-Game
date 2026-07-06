@@ -196,6 +196,7 @@ class GameService
         $game->update(['turn_position' => $nextPos->value]);
 
         $this->checkBiddingFinished($game);
+        $game->refresh();
 
         if ($game->phase === 'BIDDING' || $game->phase === 'TRUMP_SELECT') {
             $this->runBotTurnsIfActive($game);
@@ -360,7 +361,7 @@ class GameService
         }
 
         $card = Card::fromArray($cardData);
-        $currentTrick = $game->currentRound->tricks()->orderBy('trick_number', 'desc')->first();
+        $currentTrick = Trick::where('round_id', $game->currentRound->id)->orderBy('trick_number', 'desc')->first();
 
         // Rules check (Follow suit rules)
         $leadCardRecord = $currentTrick->cards()->first();
@@ -394,6 +395,7 @@ class GameService
         $game->update(['turn_position' => $nextPos->value]);
 
         $this->evaluateTrickIfNeeded($game);
+        $game->refresh();
 
         if ($game->phase === 'PLAYING') {
             $this->runBotTurnsIfActive($game);
@@ -523,7 +525,7 @@ class GameService
     private function evaluateTrickIfNeeded(Game $game): void
     {
         $round = $game->currentRound;
-        $currentTrick = $round->tricks()->orderBy('trick_number', 'desc')->first();
+        $currentTrick = Trick::where('round_id', $round->id)->orderBy('trick_number', 'desc')->first();
 
         if ($currentTrick->cards()->count() < 4) {
             return;
@@ -720,6 +722,7 @@ class GameService
      */
     public function runBotTurnsIfActive(Game $game): void
     {
+        $game->refresh();
         if ($game->phase === 'MATCH_OVER') {
             return;
         }
@@ -765,7 +768,7 @@ class GameService
             $cards = json_decode($ph->cards_json, true);
             if (empty($cards)) return;
 
-            $currentTrick = $game->currentRound->tricks()->orderBy('trick_number', 'desc')->first();
+            $currentTrick = Trick::where('round_id', $game->currentRound->id)->orderBy('trick_number', 'desc')->first();
             $leadCardRecord = $currentTrick->cards()->first();
             
             $cardToPlayData = null;

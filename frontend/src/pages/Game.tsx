@@ -521,7 +521,7 @@ export const Game: React.FC = () => {
       {/* 1. Bidding Modal */}
       {gameState.biddingActive && isYourTurn && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-premium-black/85 backdrop-blur-md" />
+          <div className="absolute inset-0 bg-premium-black/40" />
           <GlassPanel className="relative z-10 w-full max-w-sm border-gold-500/20 text-center space-y-6" glow>
             <h3 className="font-display text-xl font-extrabold text-gold-400">YOUR BIDDING TURN</h3>
             <p className="text-xs text-slate-400">Current highest bid: {gameState.highestBid > 0 ? `${gameState.highestBid} by ${gameState.highestBidder}` : 'None (Minimum is 16)'}</p>
@@ -561,7 +561,7 @@ export const Game: React.FC = () => {
       {/* 2. Trump Selection Modal */}
       {activeModal === 'TRUMP_SELECT' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-premium-black/85 backdrop-blur-md" />
+          <div className="absolute inset-0 bg-premium-black/40" />
           <GlassPanel className="relative z-10 w-full max-w-md border-gold-500/20 text-center space-y-6 animate-in zoom-in-95 duration-200" glow>
             <div>
               <h3 className="font-display text-xl font-extrabold text-gold-400 tracking-wider">CHOOSE TRUMP SUIT</h3>
@@ -624,7 +624,7 @@ export const Game: React.FC = () => {
       {/* 3. Single Hand Modal */}
       {activeModal === 'SINGLE_HAND' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-premium-black/85 backdrop-blur-md" />
+          <div className="absolute inset-0 bg-premium-black/40" />
           <GlassPanel className="relative z-10 w-full max-w-sm border-gold-500/20 text-center space-y-5" glow>
             <h3 className="font-display text-lg font-extrabold text-gold-400">PLAY SINGLE HAND?</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
