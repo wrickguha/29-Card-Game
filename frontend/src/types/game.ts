@@ -87,4 +87,5 @@ export interface GameState {
   };
   isPairDeclarationAvailable?: boolean;
   isJokerTrump?: boolean;
+  seventhCard?: Card;
 }

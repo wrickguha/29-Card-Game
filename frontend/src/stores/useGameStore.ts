@@ -625,7 +625,23 @@ export const useGameStore = create<GameStoreState>((set, get) => {
       const state = get().gameState;
       if (!state) return;
 
-      const newHand = state.hands.SOUTH; // Already has all 8 sorted cards!
+      const bidder = state.highestBidder || 'SOUTH';
+      let seventhCard: Card | undefined;
+      let finalTrumpSuit = suit;
+      let newHands = { ...state.hands };
+      let newHand = [...state.hands.SOUTH];
+
+      if (!state.isJokerTrump) {
+        // 7th Card mode
+        seventhCard = state.hands[bidder][6]; // 7th card is index 6
+        finalTrumpSuit = seventhCard.suit;
+        // Remove it from the bidder's hand
+        newHands[bidder] = newHands[bidder].filter(c => c.id !== seventhCard!.id);
+        newHand = newHands.SOUTH;
+      } else {
+        // Joker mode
+        newHand = state.hands.SOUTH;
+      }
 
       set((s) => {
         if (!s.gameState) return s;
@@ -634,9 +650,11 @@ export const useGameStore = create<GameStoreState>((set, get) => {
           activeModal: 'SINGLE_HAND', // Prompt Single Hand
           gameState: {
             ...s.gameState,
-            trumpSuit: suit,
-            trumpBidder: s.gameState.highestBidder,
+            trumpSuit: finalTrumpSuit,
+            trumpBidder: bidder,
             hand: newHand,
+            hands: newHands,
+            seventhCard: seventhCard,
             isPairDeclarationAvailable: true, // Make pair declaring available!
           },
         };
@@ -679,11 +697,27 @@ export const useGameStore = create<GameStoreState>((set, get) => {
     revealTrump: () => {
       set((s) => {
         if (!s.gameState) return s;
+        
+        const bidder = s.gameState.trumpBidder || 'SOUTH';
+        let newHands = { ...s.gameState.hands };
+        let newHand = s.gameState.hand;
+        
+        if (s.gameState.seventhCard) {
+          const card = s.gameState.seventhCard;
+          newHands[bidder] = sortCards([...newHands[bidder], card]);
+          if (bidder === 'SOUTH') {
+            newHand = newHands.SOUTH;
+          }
+        }
+
         return {
           statusText: `Trump suit has been REVEALED: ${s.gameState.trumpSuit}!`,
           gameState: {
             ...s.gameState,
             isTrumpRevealed: true,
+            hands: newHands,
+            hand: newHand,
+            seventhCard: undefined, // Clear once returned to hand
           },
         };
       });
