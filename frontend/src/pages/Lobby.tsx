@@ -38,13 +38,13 @@ export const Lobby: React.FC = () => {
   const { addToast } = useUIStore();
 
   const [messageText, setMessageText] = useState('');
-  const chatBottomRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (chatBottomRef.current) {
-      chatBottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-  }, [lobbyChat]);
+  }, [lobbyChat.length]);
 
   if (!currentRoom) {
     return (
@@ -279,7 +279,7 @@ export const Lobby: React.FC = () => {
 
           <GlassPanel className="p-4 border-gold-500/15 flex flex-col h-[400px]">
             {/* Chats Messages list */}
-            <div className="flex-1 overflow-y-auto pr-1 space-y-3 mb-4">
+            <div ref={chatContainerRef} className="flex-1 overflow-y-auto pr-1 space-y-3 mb-4">
               {lobbyChat.map((msg) => (
                 <div key={msg.id} className="text-xs">
                   {msg.senderName === 'SYSTEM' ? (
@@ -301,7 +301,6 @@ export const Lobby: React.FC = () => {
                   )}
                 </div>
               ))}
-              <div ref={chatBottomRef} />
             </div>
 
             {/* Input field form */}
