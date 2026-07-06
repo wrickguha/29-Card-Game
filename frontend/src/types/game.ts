@@ -85,4 +85,6 @@ export interface GameState {
     scoreChange: number;
     reason: 'COMPLETED' | 'SINGLE_HAND' | 'DOUBLE' | 'REDOUBLE' | 'SET' | 'DOUBLE_SET' | 'REDOUBLE_SET';
   };
+  isPairDeclarationAvailable?: boolean;
+  isJokerTrump?: boolean;
 }

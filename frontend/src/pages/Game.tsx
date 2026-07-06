@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGameStore } from '../stores/useGameStore';
 import { useUIStore } from '../stores/useUIStore';
@@ -11,10 +11,12 @@ import {
   ArrowLeft, 
   Timer, 
   Eye,
-  Award
+  Award,
+  Sparkles
 } from 'lucide-react';
 import { SUIT_INFO } from '../constants/game';
 import type { Suit } from '../types/game';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const Game: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
@@ -35,11 +37,15 @@ export const Game: React.FC = () => {
     declarePair,
     declareDouble,
     declareRedouble,
+    toggleTrumpMode,
     resetGame
   } = useGameStore();
 
   const { activeModal, closeModal, soundMuted, toggleSound } = useUIStore();
   const { leaveRoom } = useRoomStore();
+
+  const [showPairConfirm, setShowPairConfirm] = useState(false);
+  const [pairAnimationActive, setPairAnimationActive] = useState(false);
 
   useEffect(() => {
     // If game state is empty, initialize it locally
@@ -99,8 +105,15 @@ export const Game: React.FC = () => {
           {statusText}
         </div>
 
-        {/* Scores & audio toggles */}
+        {/* Scores, game mode toggle & audio toggles */}
         <div className="flex items-center space-x-4">
+          <button 
+            onClick={toggleTrumpMode}
+            className="px-3 py-1.5 rounded-xl bg-premium-gray/60 border border-gold-500/10 hover:border-gold-500 hover:text-gold-400 text-xs font-black text-gold-500/80 cursor-pointer transition-all uppercase tracking-wider"
+          >
+            Mode: {gameState.isJokerTrump ? 'Joker' : '7th Card'}
+          </button>
+
           <div className="flex items-center space-x-2 bg-premium-gray/60 border border-gold-500/10 px-3 py-1.5 rounded-xl text-xs font-bold">
             <span className="text-red-400">RED: {gameState.matchScores.redTeam}</span>
             <span className="text-slate-600">|</span>
@@ -124,14 +137,16 @@ export const Game: React.FC = () => {
 
         {/* Dedicated Trump Card Slot on the Table Felt */}
         <div className="absolute top-6 left-6 z-20 flex flex-col items-center">
-          <span className="text-[9px] font-black uppercase text-gold-500/60 tracking-wider mb-1.5">Trump Card</span>
+          <span className="text-[9px] font-black uppercase text-gold-500/60 tracking-wider mb-1.5">
+            {gameState.isJokerTrump ? 'Joker Trump' : '7th Card Trump'}
+          </span>
           
           {!gameState.trumpSuit ? (
             <div className="w-12 h-18 rounded-lg border border-dashed border-gold-500/20 flex flex-col items-center justify-center text-[9px] font-black text-slate-700 bg-premium-black/20">
               <span>Empty</span>
             </div>
           ) : !gameState.isTrumpRevealed ? (
-            /* Selected but hidden */
+            /* Selected but hidden state */
             <button
               onClick={() => {
                 if (gameState.highestBidder === 'SOUTH') {
@@ -140,33 +155,121 @@ export const Game: React.FC = () => {
                   alert("Only the bidder can reveal the trump card privately, or it will be revealed automatically when a player cannot follow suit!");
                 }
               }}
-              className="w-12 h-18 rounded-lg bg-gradient-to-b from-amber-600 to-amber-900 border border-gold-500/40 flex flex-col items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all group relative cursor-pointer"
+              className={`w-12 h-18 rounded-lg border shadow-lg hover:scale-105 active:scale-95 transition-all group relative cursor-pointer ${
+                gameState.isJokerTrump 
+                  ? 'bg-gradient-to-b from-indigo-900 to-purple-950 border-purple-500/50 shadow-purple-500/10' 
+                  : 'bg-gradient-to-b from-amber-800 to-amber-950 border-gold-500/40 shadow-gold-500/10'
+              }`}
             >
               {/* Premium card back pattern */}
-              <div className="absolute inset-0.5 rounded-[5px] border border-gold-500/10 bg-premium-black/60 flex flex-col items-center justify-center">
-                <span className="text-[10px] font-black text-gold-500">29</span>
-                <span className="text-[7px] uppercase font-bold tracking-widest text-gold-500/50 mt-0.5">7th</span>
+              <div className="absolute inset-0.5 rounded-[5px] border border-gold-500/10 bg-premium-black/60 flex flex-col items-center justify-center overflow-hidden">
+                <div className="absolute w-8 h-8 rounded-full border border-gold-500/5 bg-gold-500/2 animate-spin-slow pointer-events-none" />
+                
+                <span className="text-[10px] font-black text-gold-500 z-10">
+                  {gameState.isJokerTrump ? '🃟' : '29'}
+                </span>
+                <span className="text-[6px] uppercase font-black tracking-widest text-gold-500/60 mt-0.5 z-10">
+                  {gameState.isJokerTrump ? 'JOKER' : '7TH CARD'}
+                </span>
               </div>
               
-              {/* Bidder private tooltip on hover */}
+              {/* Bidder private indicator */}
+              {gameState.highestBidder === 'SOUTH' ? (
+                <div className="absolute -bottom-1 -right-1 bg-premium-light border border-gold-400 rounded px-0.5 text-[8px] font-black text-slate-200 shadow z-20 flex items-center space-x-0.5">
+                  <span className="text-[6px] text-slate-400 font-bold uppercase">Secret:</span>
+                  <span>{renderSuitIcon(gameState.trumpSuit)}</span>
+                </div>
+              ) : null}
+
+              {/* Hover peek tooltip */}
               {gameState.highestBidder === 'SOUTH' && (
-                <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 hidden group-hover:block bg-premium-black/90 border border-gold-500 px-2 py-1 rounded text-[10px] font-black text-gold-400 whitespace-nowrap z-30">
-                  Your Trump: {gameState.trumpSuit} (Click to Reveal)
+                <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 hidden group-hover:block bg-premium-black/95 border border-gold-500 px-2 py-1 rounded text-[10px] font-black text-gold-400 whitespace-nowrap z-30 shadow-xl">
+                  Click to Reveal Trump Suit!
                 </div>
               )}
             </button>
           ) : (
-            /* Revealed */
-            <div className="w-12 h-18 rounded-lg bg-premium-light border-2 border-gold-500 flex flex-col items-center justify-center shadow-lg shadow-gold-500/20 animate-neon-pulse animate-in zoom-in-50 duration-200">
-              <span className="text-xs font-black leading-none text-slate-200">{gameState.trumpSuit.slice(0, 1)}</span>
-              <span className="text-lg leading-none mt-1">
-                {gameState.trumpSuit === 'HEARTS' && <span className="text-red-500">♥</span>}
-                {gameState.trumpSuit === 'DIAMONDS' && <span className="text-red-500">♦</span>}
-                {gameState.trumpSuit === 'CLUBS' && <span className="text-slate-400">♣</span>}
-                {gameState.trumpSuit === 'SPADES' && <span className="text-slate-400">♠</span>}
-              </span>
+            /* Revealed state (cinematic flip animation container) */
+            <div className="animate-flip-in-y">
+              {gameState.isJokerTrump ? (
+                /* Premium Revealed Joker Card */
+                <div className="w-12 h-18 rounded-lg bg-gradient-to-br from-indigo-950 via-purple-900 to-amber-950 border-2 border-gold-500 flex flex-col items-center justify-between p-1.5 shadow-lg shadow-purple-500/20 animate-neon-pulse relative overflow-hidden">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,215,0,0.1)_0%,rgba(0,0,0,0)_70%)] pointer-events-none" />
+                  
+                  <div className="w-full flex justify-between text-[8px] font-black text-gold-400">
+                    <span>Joker</span>
+                    {renderSuitIcon(gameState.trumpSuit)}
+                  </div>
+
+                  <div className="flex flex-col items-center text-gold-400">
+                    <Sparkles size={12} className="animate-pulse" />
+                    <span className="text-[6px] font-black tracking-widest uppercase text-gold-300">Joker</span>
+                  </div>
+
+                  <div className="w-full flex justify-between text-[8px] font-black text-gold-400 rotate-180">
+                    <span>Joker</span>
+                    {renderSuitIcon(gameState.trumpSuit)}
+                  </div>
+                </div>
+              ) : (
+                /* Premium Revealed 7th Card */
+                <div className="w-12 h-18 rounded-lg bg-premium-light border-2 border-gold-500 flex flex-col items-center justify-between p-1.5 shadow-lg shadow-gold-500/20 animate-neon-pulse relative overflow-hidden">
+                  <div className="w-full flex justify-between text-[8px] font-black text-slate-300">
+                    <span>{gameState.trumpSuit.slice(0, 1)}</span>
+                    {renderSuitIcon(gameState.trumpSuit)}
+                  </div>
+                  <div className="text-lg leading-none font-bold text-center">
+                    {renderSuitIcon(gameState.trumpSuit)}
+                  </div>
+                  <div className="w-full flex justify-between text-[8px] font-black text-slate-300 rotate-180">
+                    <span>{gameState.trumpSuit.slice(0, 1)}</span>
+                    {renderSuitIcon(gameState.trumpSuit)}
+                  </div>
+                </div>
+              )}
             </div>
           )}
+        </div>
+
+        {/* 6x6 Counter Board on Table Felt */}
+        <div className="absolute top-6 right-6 z-20 flex flex-col items-center">
+          <span className="text-[9px] font-black uppercase text-gold-500/60 tracking-wider mb-1.5">6 × 6 Board</span>
+          
+          <div className="p-2 rounded-xl bg-premium-black/60 border border-gold-500/10 flex flex-col space-y-1.5 w-28 sm:w-32">
+            {/* Red Team Row */}
+            <div className="flex items-center justify-between">
+              <span className="text-[8px] font-black text-red-500 uppercase mr-1">RED</span>
+              <div className="flex space-x-0.5 sm:space-x-1">
+                {Array.from({ length: 6 }).map((_, idx) => (
+                  <div 
+                    key={idx} 
+                    className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full border transition-all duration-300 ${
+                      idx < gameState.matchScores.redTeam 
+                        ? 'bg-red-500 border-red-400 shadow-[0_0_6px_rgba(239,68,68,0.7)]' 
+                        : 'bg-premium-black border-slate-800'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Blue Team Row */}
+            <div className="flex items-center justify-between">
+              <span className="text-[8px] font-black text-blue-500 uppercase mr-1">BLUE</span>
+              <div className="flex space-x-0.5 sm:space-x-1">
+                {Array.from({ length: 6 }).map((_, idx) => (
+                  <div 
+                    key={idx} 
+                    className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full border transition-all duration-300 ${
+                      idx < gameState.matchScores.blueTeam 
+                        ? 'bg-blue-500 border-blue-400 shadow-[0_0_6px_rgba(59,130,246,0.7)]' 
+                        : 'bg-premium-black border-slate-800'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* NORTH seat slot */}
@@ -334,7 +437,7 @@ export const Game: React.FC = () => {
             <span className="text-sm font-black text-slate-300 block mt-0.5">
               {gameState.isTrumpRevealed 
                 ? `REVEALED: ${gameState.trumpSuit}` 
-                : (gameState.trumpSuit ? '7th Card Hidden' : 'Selecting Suit...')}
+                : (gameState.trumpSuit ? 'Trump Selected' : 'Selecting Suit...')}
             </span>
           </div>
           {gameState.trumpSuit && !gameState.isTrumpRevealed && (
@@ -364,11 +467,54 @@ export const Game: React.FC = () => {
             <span className="text-xs font-black text-red-500 bg-red-500/10 px-3 py-1 rounded-lg border border-red-500/20">REDOUBLE ACTIVE</span>
           )}
 
-          <Button size="sm" variant="glass" onClick={declarePair} className="text-[10px] flex-1 py-2">
-            Declare Pair (+4/-4)
-          </Button>
+          {gameState.isPairDeclarationAvailable && (
+            <Button 
+              size="sm" 
+              variant="gold" 
+              onClick={() => setShowPairConfirm(true)} 
+              className="text-[10px] flex-1 py-2 animate-bounce"
+              glow
+            >
+              Declare Pair
+            </Button>
+          )}
         </GlassPanel>
       </div>
+
+      {/* Match Timeline / Event Logs */}
+      <GlassPanel className="p-4 border-gold-500/5 bg-premium-black/40">
+        <span className="text-[9px] uppercase font-bold text-slate-500 tracking-widest block mb-2 text-left">Match Timeline</span>
+        <div className="flex flex-col space-y-1.5 text-left max-h-24 overflow-y-auto pr-2 custom-scrollbar">
+          <div className="flex items-center text-[10px] font-medium text-slate-500">
+            <span className="w-1.5 h-1.5 rounded-full bg-gold-500/40 mr-2" />
+            <span>Room session started. Cards dealt from standard 32-card deck.</span>
+          </div>
+          {gameState.highestBid > 0 && (
+            <div className="flex items-center text-[10px] font-medium text-slate-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-gold-500 mr-2" />
+              <span>Highest Bid: {gameState.highestBid} declared by {gameState.highestBidder}</span>
+            </div>
+          )}
+          {gameState.trumpSuit && (
+            <div className="flex items-center text-[10px] font-medium text-slate-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-gold-500 mr-2" />
+              <span>Trump suit selected privately by bidder. Mode: {gameState.isJokerTrump ? 'Joker' : '7th Card'}</span>
+            </div>
+          )}
+          {gameState.pairDeclared && (
+            <div className="flex items-center text-[10px] font-black text-gold-400 bg-gold-500/5 py-0.5 px-2 rounded-lg border border-gold-500/10">
+              <span className="w-1.5 h-1.5 rounded-full bg-gold-500 mr-2 animate-ping" />
+              <span>PAIR DECLARED: {gameState.pairDeclared.position} declared Pair of {gameState.pairDeclared.suit}!</span>
+            </div>
+          )}
+          {gameState.isTrumpRevealed && (
+            <div className="flex items-center text-[10px] font-medium text-gold-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-2" />
+              <span>Trump card revealed: {gameState.trumpSuit}</span>
+            </div>
+          )}
+        </div>
+      </GlassPanel>
 
       {/* Game Modals */}
 
@@ -522,6 +668,126 @@ export const Game: React.FC = () => {
           </GlassPanel>
         </div>
       )}
+
+      {/* 5. Pair Declaration Confirmation Modal */}
+      {showPairConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-premium-black/85 backdrop-blur-md" onClick={() => setShowPairConfirm(false)} />
+          <GlassPanel className="relative z-10 w-full max-w-sm border-gold-500/20 text-center space-y-5" glow>
+            <h3 className="font-display text-lg font-extrabold text-gold-400">DECLARE TRUMP PAIR?</h3>
+            <p className="text-xs text-slate-400 leading-relaxed text-left">
+              Are you sure you want to declare a Trump Pair? In 29, declaring a Pair (holding both the King and Queen of the trump suit) adjusts the game bidding target by **4 points**:
+            </p>
+            <div className="text-left space-y-1.5 p-3 rounded-lg bg-premium-black/40 border border-gold-500/5 text-[10px] text-slate-400 font-bold">
+              <div className="flex justify-between">
+                <span>If Bidder Declares:</span>
+                <span className="text-gold-400">Target Shifted by -4 Pts (Easier)</span>
+              </div>
+              <div className="flex justify-between">
+                <span>If Defender Declares:</span>
+                <span className="text-red-400">Target Shifted by +4 Pts (Harder)</span>
+              </div>
+            </div>
+            <div className="flex space-x-3 pt-2">
+              <Button 
+                variant="glass" 
+                onClick={() => setShowPairConfirm(false)}
+                className="flex-1 py-2.5"
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="gold" 
+                onClick={() => {
+                  setShowPairConfirm(false);
+                  declarePair();
+                  // Trigger cinematic animation
+                  setPairAnimationActive(true);
+                  setTimeout(() => setPairAnimationActive(false), 3000);
+                }}
+                className="flex-1 py-2.5"
+                glow
+              >
+                Declare
+              </Button>
+            </div>
+          </GlassPanel>
+        </div>
+      )}
+
+      {/* Pair Declaration Cinematic Overlay */}
+      <AnimatePresence>
+        {pairAnimationActive && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-premium-black/85 backdrop-blur-sm pointer-events-none"
+          >
+            <motion.div
+              initial={{ scale: 0.5, y: 50 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.5, y: -50 }}
+              transition={{ type: "spring", stiffness: 100 }}
+              className="flex flex-col items-center space-y-6"
+            >
+              {/* Floating Cards */}
+              <div className="flex space-x-6 relative">
+                {/* King card */}
+                <motion.div
+                  initial={{ x: -150, rotate: -20, opacity: 0 }}
+                  animate={{ x: 0, rotate: -5, opacity: 1 }}
+                  transition={{ delay: 0.2, type: "spring", stiffness: 80 }}
+                  className="w-24 h-36 rounded-2xl bg-gradient-to-b from-amber-400 to-amber-600 border-2 border-gold-300 flex flex-col items-center justify-between p-3 shadow-2xl shadow-gold-500/30"
+                >
+                  <div className="w-full flex justify-between text-xs font-black text-premium-black">
+                    <span>K</span>
+                    <span>{gameState.trumpSuit === 'HEARTS' || gameState.trumpSuit === 'DIAMONDS' ? '♥' : '♠'}</span>
+                  </div>
+                  <span className="text-3xl text-premium-black">👑</span>
+                  <div className="w-full flex justify-between text-xs font-black text-premium-black rotate-180">
+                    <span>K</span>
+                    <span>{gameState.trumpSuit === 'HEARTS' || gameState.trumpSuit === 'DIAMONDS' ? '♥' : '♠'}</span>
+                  </div>
+                </motion.div>
+
+                {/* Queen card */}
+                <motion.div
+                  initial={{ x: 150, rotate: 20, opacity: 0 }}
+                  animate={{ x: 0, rotate: 5, opacity: 1 }}
+                  transition={{ delay: 0.2, type: "spring", stiffness: 80 }}
+                  className="w-24 h-36 rounded-2xl bg-gradient-to-b from-amber-400 to-amber-600 border-2 border-gold-300 flex flex-col items-center justify-between p-3 shadow-2xl shadow-gold-500/30"
+                >
+                  <div className="w-full flex justify-between text-xs font-black text-premium-black">
+                    <span>Q</span>
+                    <span>{gameState.trumpSuit === 'HEARTS' || gameState.trumpSuit === 'DIAMONDS' ? '♥' : '♠'}</span>
+                  </div>
+                  <span className="text-3xl text-premium-black">👸</span>
+                  <div className="w-full flex justify-between text-xs font-black text-premium-black rotate-180">
+                    <span>Q</span>
+                    <span>{gameState.trumpSuit === 'HEARTS' || gameState.trumpSuit === 'DIAMONDS' ? '♥' : '♠'}</span>
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* Text Banner */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.6 }}
+                className="text-center space-y-2"
+              >
+                <h2 className="font-display text-4xl font-black text-gold-400 tracking-widest drop-shadow-[0_0_12px_rgba(212,175,55,0.6)] uppercase animate-pulse">
+                  Pair Declared!
+                </h2>
+                <p className="text-sm font-bold text-slate-300 uppercase tracking-widest">
+                  Target Score Shifted by 4 Pts
+                </p>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

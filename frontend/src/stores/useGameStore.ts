@@ -22,6 +22,7 @@ interface GameStoreState {
   declarePair: () => void;
   declareDouble: () => void;
   declareRedouble: () => void;
+  toggleTrumpMode: () => void;
   startTimer: (duration: number, onTimeout: () => void) => void;
   stopTimer: () => void;
   resetGame: () => void;
@@ -636,6 +637,7 @@ export const useGameStore = create<GameStoreState>((set, get) => {
             trumpSuit: suit,
             trumpBidder: s.gameState.highestBidder,
             hand: newHand,
+            isPairDeclarationAvailable: true, // Make pair declaring available!
           },
         };
       });
@@ -758,16 +760,7 @@ export const useGameStore = create<GameStoreState>((set, get) => {
 
     declarePair: () => {
       const state = get().gameState;
-      if (!state || !state.isTrumpRevealed || !state.trumpSuit) return;
-
-      // Check if player holds King and Queen of Trump suit
-      const hasKing = state.hand.some(c => c.suit === state.trumpSuit && c.rank === 'K');
-      const hasQueen = state.hand.some(c => c.suit === state.trumpSuit && c.rank === 'Q');
-
-      if (!hasKing || !hasQueen) {
-        alert("You must hold both the King and Queen of the trump suit to declare a Pair!");
-        return;
-      }
+      if (!state || !state.isPairDeclarationAvailable) return;
 
       set((s) => {
         if (!s.gameState) return s;
@@ -775,10 +768,23 @@ export const useGameStore = create<GameStoreState>((set, get) => {
           statusText: 'South declared a Pair of Trump! Suit values modified.',
           gameState: {
             ...s.gameState,
+            isPairDeclarationAvailable: false, // Turn off once declared
             pairDeclared: {
               position: 'SOUTH',
-              suit: s.gameState.trumpSuit!,
+              suit: s.gameState.trumpSuit || 'HEARTS',
             },
+          },
+        };
+      });
+    },
+
+    toggleTrumpMode: () => {
+      set((s) => {
+        if (!s.gameState) return s;
+        return {
+          gameState: {
+            ...s.gameState,
+            isJokerTrump: !s.gameState.isJokerTrump,
           },
         };
       });
