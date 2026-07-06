@@ -38,6 +38,7 @@ Route::prefix('v1')->group(function () {
 
     // ── User profiles ──────────────────────────────────────────────────────
     Route::middleware('auth:sanctum')->prefix('users')->group(function () {
+        Route::get('/',               [ProfileController::class, 'index']);
         Route::get('{id}/profile',    [ProfileController::class, 'show']);
         Route::get('{id}/statistics', [ProfileController::class, 'statistics']);
         Route::get('{id}/history',    [ProfileController::class, 'history']);

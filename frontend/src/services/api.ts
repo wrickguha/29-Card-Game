@@ -48,6 +48,8 @@ export const api = {
       }),
   },
   users: {
+    list: () => 
+      request('/users'),
     getStatistics: (id: string) => 
       request(`/users/${id}/statistics`),
   },

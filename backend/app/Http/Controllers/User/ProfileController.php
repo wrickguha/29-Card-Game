@@ -6,9 +6,24 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class ProfileController extends Controller
 {
+    public function index(Request $request): JsonResponse
+    {
+        $currentUserId = $request->user()->id;
+        $users = User::with('statistic')
+            ->where('id', '!=', $currentUserId)
+            ->limit(50)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data'    => UserResource::collection($users),
+        ]);
+    }
+
     public function show(string $id): JsonResponse
     {
         $user = User::with('statistic')->findOrFail($id);
