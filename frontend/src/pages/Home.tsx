@@ -10,9 +10,7 @@ import {
   Play, 
   PlusCircle, 
   Users, 
-  BookOpen, 
   ArrowRight,
-  Award,
   Zap
 } from 'lucide-react';
 
@@ -129,117 +127,52 @@ export const Home: React.FC = () => {
         </div>
       </GlassPanel>
 
-      {/* Main Grid Options */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Play Lobby Options */}
-        <div className="md:col-span-2 space-y-6">
-          <h2 className="font-display text-2xl font-black text-slate-100 flex items-center space-x-2">
-            <Users className="text-gold-500" size={22} />
-            <span>Join & Arena Channels</span>
-          </h2>
+      {/* Play Lobby Options */}
+      <div className="space-y-6">
+        <h2 className="font-display text-2xl font-black text-slate-100 flex items-center space-x-2">
+          <Users className="text-gold-500" size={22} />
+          <span>Join & Arena Channels</span>
+        </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <GlassPanel hoverable className="flex flex-col justify-between h-48 border-gold-500/10">
-              <div>
-                <h3 className="font-display text-lg font-bold text-gold-400">Join Matchmaking</h3>
-                <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                  Compete online against active players on your level to climb ranks and claim season badge awards.
-                </p>
-              </div>
-              <Button 
-                variant="gold" 
-                onClick={() => {
-                  addToast({
-                    type: 'info',
-                    title: 'Matchmaking',
-                    message: 'Finding active lobby. Connecting to lobby channel...',
-                  });
-                  setTimeout(() => handleCreateRoom(), 1000);
-                }}
-                className="mt-4 w-full flex items-center justify-center space-x-1.5"
-              >
-                <span>Quick Play</span>
-                <ArrowRight size={14} />
-              </Button>
-            </GlassPanel>
-
-            <GlassPanel hoverable className="flex flex-col justify-between h-48 border-gold-500/10">
-              <div>
-                <h3 className="font-display text-lg font-bold text-slate-200">Join Room Code</h3>
-                <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                  Enter a room code sent by a friend to jump straight into their private game table.
-                </p>
-              </div>
-              <Button 
-                variant="glass" 
-                onClick={() => setShowJoinModal(true)} 
-                className="mt-4 w-full flex items-center justify-center space-x-1.5 border-gold-500/30"
-              >
-                <span>Enter Room Code</span>
-              </Button>
-            </GlassPanel>
-          </div>
-
-          {/* Quick rules banner */}
-          <GlassPanel className="p-4 border-gold-500/5 bg-premium-gray/30 flex items-center space-x-4">
-            <div className="p-3 rounded-xl bg-gold-500/5 text-gold-400 border border-gold-500/10">
-              <BookOpen size={20} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <GlassPanel hoverable className="flex flex-col justify-between h-48 border-gold-500/10">
+            <div>
+              <h3 className="font-display text-lg font-bold text-gold-400">Join Matchmaking</h3>
+              <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                Compete online against active players on your level to climb ranks and claim season badge awards.
+              </p>
             </div>
-            <div className="flex-1">
-              <h4 className="text-xs font-black text-slate-300 tracking-wide uppercase">New to 29?</h4>
-              <p className="text-xs text-slate-500 font-medium">Jack is high (3 pts), 9 is next (2 pts). Learn tricks, bidding strategy and declarations.</p>
-            </div>
-            <Button size="sm" variant="glass" className="py-2 text-xs" onClick={startPractice}>
-              Quick Start Tutorial
+            <Button 
+              variant="gold" 
+              onClick={() => {
+                addToast({
+                  type: 'info',
+                  title: 'Matchmaking',
+                  message: 'Finding active lobby. Connecting to lobby channel...',
+                });
+                setTimeout(() => handleCreateRoom(), 1000);
+              }}
+              className="mt-4 w-full flex items-center justify-center space-x-1.5"
+            >
+              <span>Quick Play</span>
+              <ArrowRight size={14} />
             </Button>
           </GlassPanel>
-        </div>
 
-        {/* User Summary Widget */}
-        <div className="space-y-6">
-          <h2 className="font-display text-2xl font-black text-slate-100 flex items-center space-x-2">
-            <Award className="text-gold-500" size={22} />
-            <span>Profile Standing</span>
-          </h2>
-
-          <GlassPanel className="space-y-5 border-gold-500/15">
-            {user && (
-              <div className="space-y-4">
-                <div className="flex items-center space-x-4">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-gold-400 to-gold-700 flex items-center justify-center font-display text-xl font-black text-premium-black border border-gold-300">
-                    {user.username.slice(0, 2).toUpperCase()}
-                  </div>
-                  <div>
-                    <h3 className="font-display text-base font-extrabold text-slate-200">{user.username}</h3>
-                    <p className="text-xs text-gold-500 font-bold uppercase tracking-wider">{user.rank} Rank</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 pt-2">
-                  <div className="p-3 rounded-xl bg-premium-black/40 border border-gold-500/5 text-center">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-widest block">Games Played</span>
-                    <span className="text-lg font-black text-slate-300 block mt-1">{user.gamesPlayed}</span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-premium-black/40 border border-gold-500/5 text-center">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-widest block">Win Rate</span>
-                    <span className="text-lg font-black text-emerald-400 block mt-1">{user.winRate}%</span>
-                  </div>
-                </div>
-
-                <div className="pt-2 border-t border-gold-500/5">
-                  <div className="flex justify-between text-xs font-semibold text-slate-400">
-                    <span>Rank Points XP</span>
-                    <span className="text-gold-400 font-bold">{user.xp} / 6000 XP</span>
-                  </div>
-                  <div className="h-1.5 w-full bg-premium-black/60 rounded-full mt-2 overflow-hidden border border-gold-500/5">
-                    <div 
-                      className="h-full bg-gold-500 rounded-full shadow-[0_0_8px_rgba(212,175,55,0.4)]"
-                      style={{ width: `${(user.xp / 6000) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
+          <GlassPanel hoverable className="flex flex-col justify-between h-48 border-gold-500/10">
+            <div>
+              <h3 className="font-display text-lg font-bold text-slate-200">Join Room Code</h3>
+              <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                Enter a room code sent by a friend to jump straight into their private game table.
+              </p>
+            </div>
+            <Button 
+              variant="glass" 
+              onClick={() => setShowJoinModal(true)} 
+              className="mt-4 w-full flex items-center justify-center space-x-1.5 border-gold-500/30"
+            >
+              <span>Enter Room Code</span>
+            </Button>
           </GlassPanel>
         </div>
       </div>
