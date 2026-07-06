@@ -16,6 +16,7 @@ import {
   Trophy
 } from 'lucide-react';
 import Button from '../components/ui/Button';
+import { Avatar } from '../components/ui/Avatar';
 
 interface MainLayoutProps {
   children?: React.ReactNode;
@@ -90,9 +91,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             {/* User Profile Summary */}
             {user && (
               <Link to="/profile" className="flex items-center space-x-3 p-1.5 pr-4 rounded-full bg-premium-gray/60 border border-gold-500/10 hover:border-gold-500/30 transition-all duration-300">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gold-500 to-amber-700 flex items-center justify-center text-xs font-black text-premium-black uppercase border border-gold-400">
-                  {user.username.slice(0, 2)}
-                </div>
+                <Avatar id={user.avatar} className="w-8 h-8 rounded-full border border-gold-400" />
                 <div className="text-left">
                   <div className="text-xs font-black text-slate-200 tracking-wide line-clamp-1">{user.username}</div>
                   <div className="text-[10px] text-gold-500 font-bold flex items-center space-x-1">
@@ -243,9 +242,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             <div className="border-t border-gold-500/10 pt-3 flex items-center justify-between">
               {user && (
                 <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 rounded-full bg-gold-500 flex items-center justify-center text-xs font-black text-premium-black uppercase">
-                    {user.username.slice(0, 2)}
-                  </div>
+                  <Avatar id={user.avatar} className="w-8 h-8 rounded-full border border-gold-400" />
                   <div>
                     <div className="text-xs font-bold text-slate-200">{user.username}</div>
                     <div className="text-[10px] text-gold-500">Lvl {user.level} • {user.rank}</div>

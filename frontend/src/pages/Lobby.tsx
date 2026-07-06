@@ -7,6 +7,7 @@ import { useGameStore } from '../stores/useGameStore';
 import { api } from '../services/api';
 import GlassPanel from '../components/ui/GlassPanel';
 import Button from '../components/ui/Button';
+import { Avatar } from '../components/ui/Avatar';
 import { 
   Copy, 
   Share2, 
@@ -193,9 +194,7 @@ export const Lobby: React.FC = () => {
                 >
                   <div className="flex items-center space-x-4">
                     {player ? (
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-gold-500/10 to-amber-700/10 flex items-center justify-center font-display text-base font-black text-gold-400 border border-gold-500/20">
-                        {player.name.slice(0, 2).toUpperCase()}
-                      </div>
+                      <Avatar id={player.avatar} className="w-12 h-12" />
                     ) : (
                       <div className="w-12 h-12 rounded-xl border border-dashed border-slate-800 flex items-center justify-center text-slate-700 animate-pulse">
                         ?

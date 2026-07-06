@@ -22,7 +22,7 @@ interface AuthStoreState {
   user: UserProfile | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (username: string, email: string, password: string) => Promise<boolean>;
+  register: (username: string, email: string, password: string, avatar: string) => Promise<boolean>;
   updateAvatar: (avatar: string) => Promise<void>;
   logout: () => Promise<void>;
   fetchMe: () => Promise<void>;
@@ -52,9 +52,9 @@ export const useAuthStore = create<AuthStoreState>((set) => ({
     }
   },
 
-  register: async (username, email, password) => {
+  register: async (username, email, password, avatar) => {
     try {
-      const response = await api.auth.register(username, email, password);
+      const response = await api.auth.register(username, email, password, avatar);
       if (response.success && response.data) {
         const { user, token } = response.data;
         localStorage.setItem('auth_token', token);

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useUIStore } from '../stores/useUIStore';
 import GlassPanel from '../components/ui/GlassPanel';
+import { Avatar } from '../components/ui/Avatar';
 import { 
   Trophy, 
   Target, 
@@ -40,7 +41,6 @@ export const Profile: React.FC = () => {
     });
   };
 
-  const currentAvatarBg = AVATAR_OPTIONS.find(a => a.id === user.avatar)?.class || 'from-gold-400 to-gold-700';
   const stats = [
     { label: 'Games Played', value: user.gamesPlayed, icon: <Calendar className="text-blue-400" size={18} /> },
     { label: 'Games Won', value: user.gamesWon, icon: <Trophy className="text-gold-400" size={18} /> },
@@ -54,9 +54,7 @@ export const Profile: React.FC = () => {
       <GlassPanel className="p-8 rounded-3xl border-gold-500/10 flex flex-col md:flex-row items-center md:items-start justify-between gap-6 bg-gradient-to-br from-premium-gray/60 to-premium-black">
         <div className="flex flex-col sm:flex-row items-center gap-6">
           <div className="relative">
-            <div className={`w-24 h-24 rounded-3xl bg-gradient-to-br ${currentAvatarBg} flex items-center justify-center font-display text-4xl font-black text-premium-black uppercase border-2 border-gold-400 shadow-xl shadow-gold-500/10`}>
-              {user.username.slice(0, 2)}
-            </div>
+            <Avatar id={user.avatar} className="w-24 h-24 rounded-3xl border-2 border-gold-400 shadow-xl shadow-gold-500/10" />
             <button
               onClick={() => setEditingAvatar(!editingAvatar)}
               className="absolute -bottom-2 -right-2 p-2 rounded-xl bg-premium-light border border-gold-500/30 hover:border-gold-500 text-gold-400 hover:scale-105 transition-all cursor-pointer shadow-md"
@@ -108,9 +106,7 @@ export const Profile: React.FC = () => {
                       : 'bg-premium-black/40 border-gold-500/10 hover:border-gold-500/40'
                   }`}
                 >
-                  <div className={`w-12 h-12 mx-auto rounded-xl bg-gradient-to-br ${avatar.class} flex items-center justify-center font-display font-black text-premium-black text-lg`}>
-                    {user.username.slice(0,2)}
-                  </div>
+                  <Avatar id={avatar.id} className="w-12 h-12 mx-auto" />
                   <span className="text-xs font-bold text-slate-300 block mt-2">{avatar.label}</span>
                   {active && (
                     <span className="absolute top-2 right-2 text-gold-400 bg-premium-black p-0.5 rounded-full border border-gold-500/30">

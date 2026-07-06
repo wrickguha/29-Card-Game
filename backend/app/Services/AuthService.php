@@ -12,13 +12,13 @@ class AuthService
     /**
      * Register a new user and create their statistics row.
      */
-    public function register(string $username, string $email, string $password): array
+    public function register(string $username, string $email, string $password, ?string $avatar = null): array
     {
         $user = User::create([
             'username' => $username,
             'email'    => $email,
             'password' => Hash::make($password),
-            'avatar'   => 'default_avatar',
+            'avatar'   => $avatar ?? 'royal_gold',
         ]);
 
         // Bootstrap statistics record

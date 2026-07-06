@@ -24,6 +24,7 @@ class AuthController extends Controller
             $request->validated('username'),
             $request->validated('email'),
             $request->validated('password'),
+            $request->validated('avatar'),
         );
 
         return response()->json([
