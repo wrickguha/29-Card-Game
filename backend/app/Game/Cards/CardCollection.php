@@ -109,7 +109,7 @@ final class CardCollection implements Countable, IteratorAggregate
             if ($a->suit !== $b->suit) {
                 return $suitOrder[$a->suit->value] <=> $suitOrder[$b->suit->value];
             }
-            return $b->value() <=> $a->value();
+            return $b->value <=> $a->value;
         });
 
         return new self($cards);
