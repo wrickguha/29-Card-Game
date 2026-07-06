@@ -5,7 +5,6 @@ import GlassPanel from '../components/ui/GlassPanel';
 import { 
   Trophy, 
   Target, 
-  Award, 
   Heart, 
   Edit3, 
   Check,
@@ -38,19 +37,11 @@ export const Profile: React.FC = () => {
   };
 
   const currentAvatarBg = AVATAR_OPTIONS.find(a => a.id === user.avatar)?.class || 'from-gold-400 to-gold-700';
-
   const stats = [
     { label: 'Games Played', value: user.gamesPlayed, icon: <Calendar className="text-blue-400" size={18} /> },
     { label: 'Games Won', value: user.gamesWon, icon: <Trophy className="text-gold-400" size={18} /> },
     { label: 'Win Ratio', value: `${user.winRate}%`, icon: <Target className="text-emerald-400" size={18} /> },
     { label: 'Gold Tokens', value: user.totalPointsEarned, icon: <Sparkles className="text-amber-400" size={18} /> },
-  ];
-
-  const badges = [
-    { name: 'Alpha Bidder', desc: 'Bids 28 successfully in a competitive ranked match.', unlocked: true },
-    { name: 'Tactician', desc: 'Declare double and set the bidding team.', unlocked: true },
-    { name: 'Jack Master', desc: 'Play Jack of trumps on lead suit to win.', unlocked: false },
-    { name: 'Double Set Collector', desc: 'Redouble opponent and secure the trick.', unlocked: false },
   ];
 
   return (
@@ -128,7 +119,6 @@ export const Profile: React.FC = () => {
           </div>
         </GlassPanel>
       )}
-
       {/* Statistics Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {stats.map((stat, i) => (
@@ -140,44 +130,6 @@ export const Profile: React.FC = () => {
             <span className="text-2xl font-black text-slate-200 block mt-1">{stat.value}</span>
           </GlassPanel>
         ))}
-      </div>
-
-      {/* Achievements Cards */}
-      <div className="space-y-6">
-        <h2 className="font-display text-xl font-black text-slate-100 flex items-center space-x-2">
-          <Award className="text-gold-500" size={20} />
-          <span>Special Accomplishments</span>
-        </h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {badges.map((badge, i) => (
-            <GlassPanel 
-              key={i} 
-              className={`p-5 flex items-start space-x-4 border transition-all ${
-                badge.unlocked 
-                  ? 'border-gold-500/10 hover:border-gold-500/20 bg-gold-500/2' 
-                  : 'border-slate-800/10 bg-slate-950/20 opacity-50'
-              }`}
-            >
-              <div className={`p-3 rounded-xl border ${
-                badge.unlocked 
-                  ? 'bg-gold-500/10 text-gold-400 border-gold-500/20' 
-                  : 'bg-premium-black text-slate-500 border-slate-800'
-              }`}>
-                <Trophy size={18} />
-              </div>
-              <div className="text-left space-y-1">
-                <h3 className={`font-display text-sm font-bold ${badge.unlocked ? 'text-slate-200' : 'text-slate-400'}`}>
-                  {badge.name}
-                </h3>
-                <p className="text-xs text-slate-500 font-medium leading-relaxed">{badge.desc}</p>
-                <span className={`inline-block text-[9px] font-black uppercase tracking-wider mt-1 ${badge.unlocked ? 'text-gold-500' : 'text-slate-600'}`}>
-                  {badge.unlocked ? 'Unlocked' : 'Locked'}
-                </span>
-              </div>
-            </GlassPanel>
-          ))}
-        </div>
       </div>
     </div>
   );
