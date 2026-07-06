@@ -563,23 +563,60 @@ export const Game: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-premium-black/85 backdrop-blur-md" />
           <GlassPanel className="relative z-10 w-full max-w-md border-gold-500/20 text-center space-y-6 animate-in zoom-in-95 duration-200" glow>
-            <h3 className="font-display text-xl font-extrabold text-gold-400 tracking-wider">CHOOSE TRUMP SUIT</h3>
-            <p className="text-xs text-slate-400 font-medium">Select the secret suit. It will remain hidden in a face-down Joker card until revealed during play.</p>
+            <div>
+              <h3 className="font-display text-xl font-extrabold text-gold-400 tracking-wider">CHOOSE TRUMP SUIT</h3>
+              <p className="text-[11px] text-slate-400 font-medium mt-1">Select the secret suit directly, or use one of the traditional hidden card selection methods below.</p>
+            </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {(['HEARTS', 'DIAMONDS', 'CLUBS', 'SPADES'] as Suit[]).map((suit) => {
                 const info = SUIT_INFO[suit];
                 return (
                   <button
                     key={suit}
                     onClick={() => { selectTrump(suit); closeModal(); }}
-                    className="p-5 rounded-2xl bg-premium-black border border-gold-500/15 hover:border-gold-500/60 hover:bg-gold-500/5 cursor-pointer text-center space-y-2 group transition-all"
+                    className="p-3 rounded-xl bg-premium-black border border-gold-500/10 hover:border-gold-500/50 hover:bg-gold-500/5 cursor-pointer text-center space-y-1 group transition-all"
                   >
-                    <div className="text-3xl transition-transform group-hover:scale-110">{info.symbol}</div>
-                    <span className="text-xs font-black text-slate-300 block uppercase tracking-wider">{info.name}</span>
+                    <div className="text-xl transition-transform group-hover:scale-110">{info.symbol}</div>
+                    <span className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">{info.name.slice(0, 3)}</span>
                   </button>
                 );
               })}
+            </div>
+
+            <div className="border-t border-gold-500/10 pt-4 text-left">
+              <span className="text-[10px] font-black uppercase text-gold-500/60 tracking-wider block mb-3">Special Selection Methods</span>
+              
+              <div className="grid grid-cols-2 gap-3">
+                {/* 7th Card Option */}
+                <button
+                  onClick={() => {
+                    const seventhCardSuit = gameState.hands?.SOUTH[6]?.suit || 'DIAMONDS';
+                    selectTrump(seventhCardSuit);
+                    closeModal();
+                  }}
+                  className="p-4 rounded-xl bg-gradient-to-b from-premium-gray/60 to-premium-black border border-gold-500/15 hover:border-gold-500/60 hover:bg-gold-500/5 cursor-pointer text-center space-y-1.5 group transition-all"
+                >
+                  <div className="text-2xl group-hover:scale-110 transition-transform">🎴</div>
+                  <span className="text-[10px] font-black text-slate-200 block uppercase tracking-wider">7th Card Trump</span>
+                  <p className="text-[8px] text-slate-500 leading-tight">Trump suit is set by the 7th card dealt to you.</p>
+                </button>
+
+                {/* Joker Card Option */}
+                <button
+                  onClick={() => {
+                    toggleTrumpMode(); // Switches to Joker mode!
+                    const seventhCardSuit = gameState.hands?.SOUTH[6]?.suit || 'SPADES';
+                    selectTrump(seventhCardSuit);
+                    closeModal();
+                  }}
+                  className="p-4 rounded-xl bg-gradient-to-b from-premium-gray/60 to-premium-black border border-gold-500/15 hover:border-gold-500/60 hover:bg-gold-500/5 cursor-pointer text-center space-y-1.5 group transition-all"
+                >
+                  <div className="text-2xl group-hover:scale-110 transition-transform">🃟</div>
+                  <span className="text-[10px] font-black text-gold-400 block uppercase tracking-wider">Joker Trump</span>
+                  <p className="text-[8px] text-slate-500 leading-tight">Use a premium Joker card as the hidden trump indicator.</p>
+                </button>
+              </div>
             </div>
           </GlassPanel>
         </div>
