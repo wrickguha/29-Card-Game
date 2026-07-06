@@ -66,6 +66,21 @@ const shuffleDeck = (deck: Card[]): Card[] => {
   return shuffled;
 };
 
+const sortCards = (cards: Card[]): Card[] => {
+  const SUIT_ORDER: Record<Suit, number> = {
+    'SPADES': 0,
+    'DIAMONDS': 1,
+    'CLUBS': 2,
+    'HEARTS': 3,
+  };
+  return [...cards].sort((a, b) => {
+    if (a.suit !== b.suit) {
+      return SUIT_ORDER[a.suit] - SUIT_ORDER[b.suit];
+    }
+    return CARD_VALUES[b.rank] - CARD_VALUES[a.rank];
+  });
+};
+
 export const useGameStore = create<GameStoreState>((set, get) => {
   // Bot Bidding behavior simulation
   const simulateBotBidding = () => {
@@ -347,7 +362,7 @@ export const useGameStore = create<GameStoreState>((set, get) => {
     initGame: (roomId) => {
       const deck = shuffleDeck(generateDeck());
       // Deal 4 cards first
-      const southHand = deck.slice(0, 4);
+      const southHand = sortCards(deck.slice(0, 4));
       const playedCardsInit: Record<PlayerPosition, Card | null> = {
         SOUTH: null,
         WEST: null,
@@ -562,7 +577,7 @@ export const useGameStore = create<GameStoreState>((set, get) => {
       const existingIds = state.hand.map(c => c.id);
       const remainingCards = deck.filter(c => !existingIds.includes(c.id));
       // Deal remaining 4 cards matching the same suit for card testing
-      const newHand = [...state.hand, ...remainingCards.slice(0, 4)];
+      const newHand = sortCards([...state.hand, ...remainingCards.slice(0, 4)]);
 
       set((s) => {
         if (!s.gameState) return s;
