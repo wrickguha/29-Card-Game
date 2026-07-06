@@ -47,10 +47,10 @@ export const useGameStore = create<GameStoreState>((set, get) => {
       if (!state) return;
 
       try {
-        const response = await api.games.placeBid(state.roomId, bidValue, false);
+        const response = await api.games.placeBid(state.gameId, bidValue, false);
         if (response.success) {
           // Immediately fetch state to update UI
-          const stateRes = await api.games.getState(state.roomId);
+          const stateRes = await api.games.getState(state.gameId);
           if (stateRes.success) {
             const updated = stateRes.data;
             set({
@@ -70,9 +70,9 @@ export const useGameStore = create<GameStoreState>((set, get) => {
       if (!state) return;
 
       try {
-        const response = await api.games.placeBid(state.roomId, 0, true);
+        const response = await api.games.placeBid(state.gameId, 0, true);
         if (response.success) {
-          const stateRes = await api.games.getState(state.roomId);
+          const stateRes = await api.games.getState(state.gameId);
           if (stateRes.success) {
             const updated = stateRes.data;
             set({
@@ -92,9 +92,9 @@ export const useGameStore = create<GameStoreState>((set, get) => {
       if (!state) return;
 
       try {
-        const response = await api.games.selectTrump(state.roomId, suit);
+        const response = await api.games.selectTrump(state.gameId, suit);
         if (response.success) {
-          const stateRes = await api.games.getState(state.roomId);
+          const stateRes = await api.games.getState(state.gameId);
           if (stateRes.success) {
             const updated = stateRes.data;
             set({
@@ -114,9 +114,9 @@ export const useGameStore = create<GameStoreState>((set, get) => {
       if (!state) return;
 
       try {
-        const response = await api.games.revealTrump(state.roomId);
+        const response = await api.games.revealTrump(state.gameId);
         if (response.success) {
-          const stateRes = await api.games.getState(state.roomId);
+          const stateRes = await api.games.getState(state.gameId);
           if (stateRes.success) {
             const updated = stateRes.data;
             set({
@@ -136,9 +136,9 @@ export const useGameStore = create<GameStoreState>((set, get) => {
       if (!state) return;
 
       try {
-        const response = await api.games.playCard(state.roomId, cardId);
+        const response = await api.games.playCard(state.gameId, cardId);
         if (response.success) {
-          const stateRes = await api.games.getState(state.roomId);
+          const stateRes = await api.games.getState(state.gameId);
           if (stateRes.success) {
             const updated = stateRes.data;
             set({
@@ -160,10 +160,10 @@ export const useGameStore = create<GameStoreState>((set, get) => {
       if (!state) return;
 
       try {
-        const response = await api.games.declareSingleHand(state.roomId, play);
+        const response = await api.games.declareSingleHand(state.gameId, play);
         if (response.success) {
           useUIStore.getState().closeModal();
-          const stateRes = await api.games.getState(state.roomId);
+          const stateRes = await api.games.getState(state.gameId);
           if (stateRes.success) {
             const updated = stateRes.data;
             set({
@@ -183,9 +183,9 @@ export const useGameStore = create<GameStoreState>((set, get) => {
       if (!state) return;
 
       try {
-        const response = await api.games.declarePair(state.roomId);
+        const response = await api.games.declarePair(state.gameId);
         if (response.success) {
-          const stateRes = await api.games.getState(state.roomId);
+          const stateRes = await api.games.getState(state.gameId);
           if (stateRes.success) {
             const updated = stateRes.data;
             set({
@@ -204,9 +204,9 @@ export const useGameStore = create<GameStoreState>((set, get) => {
       if (!state) return;
 
       try {
-        const response = await api.games.declareDouble(state.roomId);
+        const response = await api.games.declareDouble(state.gameId);
         if (response.success) {
-          const stateRes = await api.games.getState(state.roomId);
+          const stateRes = await api.games.getState(state.gameId);
           if (stateRes.success) {
             const updated = stateRes.data;
             set({
@@ -225,9 +225,9 @@ export const useGameStore = create<GameStoreState>((set, get) => {
       if (!state) return;
 
       try {
-        const response = await api.games.declareRedouble(state.roomId);
+        const response = await api.games.declareRedouble(state.gameId);
         if (response.success) {
-          const stateRes = await api.games.getState(state.roomId);
+          const stateRes = await api.games.getState(state.gameId);
           if (stateRes.success) {
             const updated = stateRes.data;
             set({

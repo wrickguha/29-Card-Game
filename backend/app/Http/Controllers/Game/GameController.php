@@ -172,6 +172,7 @@ class GameController extends Controller
         }
 
         return [
+            'gameId'                     => (string) $game->id,
             'roomId'                     => (string) $game->room_id,
             'roomCode'                   => $game->room->code,
             'dealerPosition'             => $rotate($game->dealer_position),

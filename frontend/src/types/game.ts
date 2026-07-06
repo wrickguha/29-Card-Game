@@ -55,6 +55,7 @@ export interface GameScore {
 export type DoubleStatus = 'NONE' | 'DOUBLE' | 'REDOUBLE';
 
 export interface GameState {
+  gameId: string;
   roomId: string;
   roomCode?: string;
   dealerPosition: PlayerPosition;
