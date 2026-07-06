@@ -16,6 +16,13 @@ async function request(path: string, options: RequestInit = {}) {
     headers,
   });
 
+  if (response.status === 401) {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
+    window.location.href = '/auth';
+    throw new Error('Unauthorized');
+  }
+
   const json = await response.json();
 
   if (!response.ok) {
