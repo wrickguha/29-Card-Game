@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -10,12 +10,26 @@ import { AvatarComponent } from '../../shared/components/avatar/avatar.component
 import { ChipComponent } from '../../shared/components/chip/chip.component';
 import { ModalComponent } from '../../shared/components/modal/modal.component';
 import { Card, Suit, Player, PlayedCard, Score } from '../../core/models/game.model';
+import { HiddenTrumpCardComponent } from './components/hidden-trump-card/hidden-trump-card.component';
+import { TrumpSelectionModalComponent } from './components/trump-selection-modal/trump-selection-modal.component';
+import { TrumpRevealAnimationComponent } from './components/trump-reveal-animation/trump-reveal-animation.component';
+import { HiddenTrumpIndicatorComponent } from './components/hidden-trump-indicator/hidden-trump-indicator.component';
 import gsap from 'gsap';
 
 @Component({
   selector: 'app-game',
   standalone: true,
-  imports: [CommonModule, FormsModule, AvatarComponent, ChipComponent, ModalComponent],
+  imports: [
+    CommonModule, 
+    FormsModule, 
+    AvatarComponent, 
+    ChipComponent, 
+    ModalComponent,
+    HiddenTrumpCardComponent,
+    TrumpSelectionModalComponent,
+    TrumpRevealAnimationComponent,
+    HiddenTrumpIndicatorComponent
+  ],
   template: `
     <div class="game-page fade-in">
       <div class="table-ambient-glow"></div>
@@ -146,30 +160,18 @@ import gsap from 'gsap';
 
             <!-- Trump card holder (placed face down next to center) -->
             <div class="trump-holder-felt" *ngIf="state().trumpSuit">
-              <span class="label">TRUMP</span>
-              
-              <div 
-                class="trump-card-display-wrapper"
-                [class.revealed]="state().isTrumpRevealed"
-                (click)="requestRevealTrump()"
-              >
-                <div 
-                  class="trump-card-display" 
-                  [class.revealed]="state().isTrumpRevealed"
-                  [class.secret-preview]="!state().isTrumpRevealed && state().bidderId === getPlayerAtPosition('bottom')?.id"
-                  [class]="(state().isTrumpRevealed || state().bidderId === getPlayerAtPosition('bottom')?.id) ? state().trumpSuit : 'back'"
-                >
-                  <div class="card-inner" *ngIf="state().isTrumpRevealed || state().bidderId === getPlayerAtPosition('bottom')?.id">
-                    <span class="rank">T</span>
-                    <span class="suit">{{ getSuitSymbol(state().trumpSuit!) }}</span>
-                    <span class="bidder-preview-label" *ngIf="!state().isTrumpRevealed && state().bidderId === getPlayerAtPosition('bottom')?.id">SECRET</span>
-                  </div>
-                  
-                  <div class="card-back-pattern" *ngIf="!state().isTrumpRevealed && state().bidderId !== getPlayerAtPosition('bottom')?.id">
-                    <span class="lock-icon">🔒</span>
-                  </div>
-                </div>
-              </div>
+              <app-hidden-trump-indicator
+                [isRevealed]="state().isTrumpRevealed"
+                [suit]="state().trumpSuit"
+                [bidderName]="getBidderName()"
+              ></app-hidden-trump-indicator>
+
+              <app-hidden-trump-card
+                [suit]="state().trumpSuit"
+                [isRevealed]="state().isTrumpRevealed"
+                [isBidder]="state().bidderId === getPlayerAtPosition('bottom')?.id"
+                (reveal)="requestRevealTrump()"
+              ></app-hidden-trump-card>
             </div>
           </div>
         </div>
@@ -250,33 +252,11 @@ import gsap from 'gsap';
         </div>
       </div>
 
-      <!-- Trump Suit Selection Overlay -->
-      <div class="overlay-fullscreen trump-overlay fade-in" *ngIf="state().phase === 'trump_selection' && state().currentTurnId === getPlayerAtPosition('bottom')?.id">
-        <div class="overlay-glow"></div>
-        <div class="trump-panel glass-panel">
-          <h4 class="gold-glow-text">SELECT SECRET TRUMP</h4>
-          <p class="sub">Choose the trump suit based on your 4 cards. Keep it secret!</p>
-          
-          <div class="trump-cards-row">
-            <div class="trump-card-btn H" (click)="chooseTrump('H')">
-              <span class="symbol">♥</span>
-              <span class="label">HEARTS</span>
-            </div>
-            <div class="trump-card-btn D" (click)="chooseTrump('D')">
-              <span class="symbol">♦</span>
-              <span class="label">DIAMONDS</span>
-            </div>
-            <div class="trump-card-btn C" (click)="chooseTrump('C')">
-              <span class="symbol">♣</span>
-              <span class="label">CLUBS</span>
-            </div>
-            <div class="trump-card-btn S" (click)="chooseTrump('S')">
-              <span class="symbol">♠</span>
-              <span class="label">SPADES</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- Trump Suit Selection Modal -->
+      <app-trump-selection-modal
+        *ngIf="state().phase === 'trump_selection' && state().currentTurnId === getPlayerAtPosition('bottom')?.id"
+        (select)="chooseTrump($event)"
+      ></app-trump-selection-modal>
 
       <!-- Round End / Score Recap Overlay -->
       <div class="overlay-fullscreen recap-overlay fade-in" *ngIf="state().phase === 'round_end'">
@@ -536,6 +516,12 @@ import gsap from 'gsap';
           </div>
         </div>
       </app-modal>
+      <!-- Trump Reveal Animation Screen Overlay -->
+      <app-trump-reveal-animation
+        [suit]="state().trumpSuit || 'H'"
+        [active]="showRevealAnimation"
+        (animationComplete)="showRevealAnimation = false"
+      ></app-trump-reveal-animation>
     </div>
   `,
   styles: [`
@@ -1949,6 +1935,7 @@ export class GameComponent implements OnInit, OnDestroy {
   isPairConfirmOpen = false;
   lobbyCode = '';
   selectedSpeed = 'normal';
+  showRevealAnimation = false;
 
   // Confetti array for victory Screen
   confetti: { x: number; color: string; delay: number; duration: number }[] = [];
@@ -1963,6 +1950,16 @@ export class GameComponent implements OnInit, OnDestroy {
     private router: Router
   ) {
     this.generateConfetti();
+
+    // Track trump reveal state to trigger cinematic animation
+    let lastRevealed = false;
+    effect(() => {
+      const isRevealed = this.state().isTrumpRevealed;
+      if (isRevealed && !lastRevealed) {
+        this.showRevealAnimation = true;
+      }
+      lastRevealed = isRevealed;
+    });
   }
 
   ngOnInit() {
