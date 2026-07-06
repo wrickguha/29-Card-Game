@@ -46,11 +46,7 @@ export const Game: React.FC = () => {
     if (!gameState && roomId) {
       initGame(roomId);
     }
-    return () => {
-      // Clean up game store on leave
-      resetGame();
-    };
-  }, [roomId]);
+  }, [roomId, gameState, initGame]);
 
   const handleExit = () => {
     if (confirm("Are you sure you want to exit the current card table?")) {
