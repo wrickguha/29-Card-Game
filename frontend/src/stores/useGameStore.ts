@@ -113,6 +113,10 @@ export const useGameStore = create<GameStoreState>((set, get) => {
       const turn = state.turnPosition;
       if (turn === 'SOUTH') return; // User turn
 
+      // Get bot's hand
+      const botHand = state.hands[turn];
+      if (!botHand || botHand.length === 0) return; // No cards to play!
+
       // Determine lead suit of the trick if cards have been played
       let leadSuit: Suit | null = null;
       const leadPosition = (['SOUTH', 'WEST', 'NORTH', 'EAST'] as PlayerPosition[]).find(
@@ -122,42 +126,80 @@ export const useGameStore = create<GameStoreState>((set, get) => {
         leadSuit = state.playedCards[leadPosition]!.suit;
       }
 
-      // Generate a mock card for the bot that matches rules
-      const suits: Suit[] = ['HEARTS', 'DIAMONDS', 'CLUBS', 'SPADES'];
-      const ranks: ('J' | '9' | 'A' | '10' | 'K' | 'Q' | '8' | '7')[] = ['J', '9', 'A', '10', 'K', 'Q', '8', '7'];
-      
-      let botCardSuit = leadSuit || suits[Math.floor(Math.random() * 4)];
-      // If following lead suit, 90% chance to follow, 10% chance to ruff/discard if they "don't have it"
-      if (leadSuit && Math.random() < 0.15) {
-        botCardSuit = suits.find((s) => s !== leadSuit) || 'HEARTS';
-        // If they played a different suit, they might reveal trump if hidden
-        if (!state.isTrumpRevealed && state.trumpSuit && Math.random() > 0.5) {
-          get().revealTrump();
+      // Pick card according to 29 rules
+      let cardToPlay: Card | undefined;
+
+      if (leadSuit) {
+        // Must follow suit if possible
+        const matchingCards = botHand.filter((c) => c.suit === leadSuit);
+        if (matchingCards.length > 0) {
+          // Play the highest value card of the lead suit to try and win, or lowest to discard
+          // Simple bot AI: 70% chance to play highest value matching card, 30% chance to play lowest
+          matchingCards.sort((a, b) => CARD_VALUES[b.rank] - CARD_VALUES[a.rank]);
+          cardToPlay = Math.random() < 0.7 ? matchingCards[0] : matchingCards[matchingCards.length - 1];
+        } else {
+          // Cannot follow suit!
+          // They can either:
+          // 1. Ask to reveal the trump if it's hidden and they want to ruff it
+          // 2. Play a trump card (if revealed and they have it)
+          // 3. Play any other card (discard)
+          if (!state.isTrumpRevealed && state.trumpSuit && Math.random() < 0.4) {
+            // Ask to reveal trump!
+            get().revealTrump();
+            // Re-read state after reveal
+            const updatedState = get().gameState!;
+            const trumpCards = botHand.filter((c) => c.suit === updatedState.trumpSuit);
+            if (trumpCards.length > 0) {
+              trumpCards.sort((a, b) => CARD_VALUES[b.rank] - CARD_VALUES[a.rank]);
+              cardToPlay = trumpCards[0]; // Play highest trump card (ruff)
+            }
+          } else if (state.isTrumpRevealed && state.trumpSuit) {
+            // Trump is already revealed. Check if bot has trumps
+            const trumpCards = botHand.filter((c) => c.suit === state.trumpSuit);
+            if (trumpCards.length > 0 && Math.random() < 0.8) {
+              trumpCards.sort((a, b) => CARD_VALUES[b.rank] - CARD_VALUES[a.rank]);
+              cardToPlay = trumpCards[0]; // Play highest trump card
+            }
+          }
+          
+          // If they still haven't chosen a card (no trumps or didn't ruff), discard any card
+          if (!cardToPlay) {
+            // Discard lowest value card from their hand (excluding high points if possible)
+            const sortedHand = [...botHand].sort((a, b) => CARD_VALUES[a.rank] - CARD_VALUES[b.rank]);
+            cardToPlay = sortedHand[0];
+          }
         }
+      } else {
+        // Bot is leading the trick! Play any card
+        // Simple AI: 40% chance to play highest value card to lead
+        const sortedHand = [...botHand].sort((a, b) => CARD_VALUES[b.rank] - CARD_VALUES[a.rank]);
+        cardToPlay = sortedHand[0]; // Play highest value card to lead
       }
 
-      const botCard: Card = {
-        id: `bot_${turn}_${botCardSuit}_${Date.now()}`,
-        suit: botCardSuit,
-        rank: ranks[Math.floor(Math.random() * ranks.length)],
-        points: 0, // Points and values will be computed on evaluation
-        value: Math.floor(Math.random() * 8) + 1,
-      };
+      if (!cardToPlay) {
+        // Fallback
+        cardToPlay = botHand[0];
+      }
 
-      botCard.points = CARD_POINTS[botCard.rank as keyof typeof CARD_POINTS] || 0;
-      botCard.value = CARD_VALUES[botCard.rank as keyof typeof CARD_VALUES] || 1;
+      // Play the card!
+      const finalCard = cardToPlay;
+      
+      // Update bot hand and played cards
+      const newBotHand = botHand.filter((c) => c.id !== finalCard.id);
+      const newHands = { ...state.hands };
+      newHands[turn] = newBotHand;
 
-      // Update state with bot card
+      const newPlayed = { ...state.playedCards };
+      newPlayed[turn] = finalCard;
+
       set((s) => {
         if (!s.gameState) return s;
-        const newPlayed = { ...s.gameState.playedCards };
-        newPlayed[turn] = botCard;
-
         const nextTurn = NEXT_POSITION[turn];
         return {
-          statusText: `${turn} played ${botCard.rank} of ${botCard.suit}`,
+          statusText: `${turn} played ${finalCard.rank} of ${finalCard.suit}`,
           gameState: {
             ...s.gameState,
+            hands: newHands,
             playedCards: newPlayed,
             turnPosition: nextTurn,
           },
@@ -175,9 +217,7 @@ export const useGameStore = create<GameStoreState>((set, get) => {
           evaluateTrick();
         }, 1500);
       } else {
-        get().startTimer(15, () => {
-          // Auto play on timeout
-        });
+        get().startTimer(15, () => {});
         if (updatedState.turnPosition !== 'SOUTH') {
           simulateBotPlay();
         }
@@ -361,8 +401,15 @@ export const useGameStore = create<GameStoreState>((set, get) => {
 
     initGame: (roomId) => {
       const deck = shuffleDeck(generateDeck());
-      // Deal 4 cards first
-      const southHand = sortCards(deck.slice(0, 4));
+      // Deal 8 cards to each player right away
+      const southFull = sortCards(deck.slice(0, 8));
+      const westFull = sortCards(deck.slice(8, 16));
+      const northFull = sortCards(deck.slice(16, 24));
+      const eastFull = sortCards(deck.slice(24, 32));
+
+      // Initially only 4 cards in South's hand are shown during the bidding phase
+      const southHand = southFull.slice(0, 4);
+
       const playedCardsInit: Record<PlayerPosition, Card | null> = {
         SOUTH: null,
         WEST: null,
@@ -382,6 +429,12 @@ export const useGameStore = create<GameStoreState>((set, get) => {
         biddingHistory: [],
         isTrumpRevealed: false,
         hand: southHand,
+        hands: {
+          SOUTH: southFull,
+          WEST: westFull,
+          NORTH: northFull,
+          EAST: eastFull,
+        },
         playedCards: playedCardsInit,
         tricksWon: { RED: 0, BLUE: 0 },
         roundScores: initialScores,
@@ -571,13 +624,7 @@ export const useGameStore = create<GameStoreState>((set, get) => {
       const state = get().gameState;
       if (!state) return;
 
-      // Deal remaining 4 cards to complete hand (8 cards total)
-      const deck = shuffleDeck(generateDeck());
-      // Exclude cards already in hand
-      const existingIds = state.hand.map(c => c.id);
-      const remainingCards = deck.filter(c => !existingIds.includes(c.id));
-      // Deal remaining 4 cards matching the same suit for card testing
-      const newHand = sortCards([...state.hand, ...remainingCards.slice(0, 4)]);
+      const newHand = state.hands.SOUTH; // Already has all 8 sorted cards!
 
       set((s) => {
         if (!s.gameState) return s;
@@ -668,6 +715,8 @@ export const useGameStore = create<GameStoreState>((set, get) => {
 
       // Valid play
       const newHand = state.hand.filter(c => c.id !== cardId);
+      const newHands = { ...state.hands };
+      newHands.SOUTH = newHands.SOUTH.filter(c => c.id !== cardId);
       const newPlayed = { ...state.playedCards };
       newPlayed.SOUTH = card;
 
@@ -682,6 +731,7 @@ export const useGameStore = create<GameStoreState>((set, get) => {
           gameState: {
             ...s.gameState,
             hand: newHand,
+            hands: newHands,
             playedCards: newPlayed,
             turnPosition: nextPos,
           },

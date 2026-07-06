@@ -66,6 +66,7 @@ export interface GameState {
   isTrumpRevealed: boolean;
   trumpBidder?: PlayerPosition;
   hand: Card[]; // Current player's cards
+  hands: Record<PlayerPosition, Card[]>; // All players' hands
   playedCards: Record<PlayerPosition, Card | null>; // Cards currently in the center trick
   tricksWon: Record<'RED' | 'BLUE', number>;
   roundScores: GameScore; // Current round points collected (cards won in tricks)
