@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { api } from '../services/api';
 
 export interface UserProfile {
   id: string;
@@ -10,7 +11,7 @@ export interface UserProfile {
   xp: number;
   gamesPlayed: number;
   gamesWon: number;
-  winRate: number; // Percentage
+  winRate: number;
   totalPointsEarned: number;
   achievements: string[];
   badges: string[];
@@ -22,25 +23,10 @@ interface AuthStoreState {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   register: (username: string, email: string, password: string) => Promise<boolean>;
-  updateAvatar: (avatar: string) => void;
-  logout: () => void;
+  updateAvatar: (avatar: string) => Promise<void>;
+  logout: () => Promise<void>;
+  fetchMe: () => Promise<void>;
 }
-
-const DEFAULT_USER: UserProfile = {
-  id: 'usr_1',
-  username: 'RoyalCardPro',
-  email: 'pro.player@royalclub.com',
-  avatar: 'royal_gold',
-  rank: 'GOLD',
-  level: 12,
-  xp: 4850,
-  gamesPlayed: 142,
-  gamesWon: 88,
-  winRate: 62.0,
-  totalPointsEarned: 2450,
-  achievements: ['first_win', 'bid_28', 'single_hand_victory', 'clean_sweep'],
-  badges: ['Alpha Bidder', 'Tactician', 'Royal Club Gold'],
-};
 
 export const useAuthStore = create<AuthStoreState>((set) => ({
   token: localStorage.getItem('auth_token'),
@@ -50,53 +36,74 @@ export const useAuthStore = create<AuthStoreState>((set) => ({
   isAuthenticated: !!localStorage.getItem('auth_token'),
 
   login: async (email, password) => {
-    // Simulating authentication process
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    if (email && password) {
-      const mockToken = 'mock-jwt-token-12345';
-      const mockUser = {
-        ...DEFAULT_USER,
-        email,
-        username: email.split('@')[0],
-      };
-      localStorage.setItem('auth_token', mockToken);
-      localStorage.setItem('auth_user', JSON.stringify(mockUser));
-      set({ token: mockToken, user: mockUser, isAuthenticated: true });
-      return true;
+    try {
+      const response = await api.auth.login(email, password);
+      if (response.success && response.data) {
+        const { user, token } = response.data;
+        localStorage.setItem('auth_token', token);
+        localStorage.setItem('auth_user', JSON.stringify(user));
+        set({ token, user, isAuthenticated: true });
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Login error', err);
+      return false;
     }
-    return false;
   },
 
   register: async (username, email, password) => {
-    // Simulating registration process
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    if (username && email && password) {
-      const mockToken = 'mock-jwt-token-67890';
-      const mockUser: UserProfile = {
-        ...DEFAULT_USER,
-        username,
-        email,
-      };
-      localStorage.setItem('auth_token', mockToken);
-      localStorage.setItem('auth_user', JSON.stringify(mockUser));
-      set({ token: mockToken, user: mockUser, isAuthenticated: true });
-      return true;
+    try {
+      const response = await api.auth.register(username, email, password);
+      if (response.success && response.data) {
+        const { user, token } = response.data;
+        localStorage.setItem('auth_token', token);
+        localStorage.setItem('auth_user', JSON.stringify(user));
+        set({ token, user, isAuthenticated: true });
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Registration error', err);
+      return false;
     }
-    return false;
   },
 
-  updateAvatar: (avatar) => {
-    set((state) => {
-      if (!state.user) return state;
-      const updatedUser = { ...state.user, avatar };
-      localStorage.setItem('auth_user', JSON.stringify(updatedUser));
-      return { user: updatedUser };
-    });
+  updateAvatar: async (avatar) => {
+    try {
+      const response = await api.auth.updateAvatar(avatar);
+      if (response.success && response.data) {
+        const user = response.data;
+        localStorage.setItem('auth_user', JSON.stringify(user));
+        set({ user });
+      }
+    } catch (err) {
+      console.error('Update avatar error', err);
+    }
   },
 
-  logout: () => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_user');
-    set({ token: null, user: null, isAuthenticated: false });
+  logout: async () => {
+    try {
+      await api.auth.logout();
+    } catch (err) {
+      console.error('Logout API call failed', err);
+    } finally {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+      set({ token: null, user: null, isAuthenticated: false });
+    }
   },
+
+  fetchMe: async () => {
+    try {
+      const response = await api.auth.me();
+      if (response.success && response.data) {
+        const user = response.data;
+        localStorage.setItem('auth_user', JSON.stringify(user));
+        set({ user });
+      }
+    } catch (err) {
+      console.error('Fetch me error', err);
+    }
+  }
 }));

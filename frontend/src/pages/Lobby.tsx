@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useRoomStore } from '../stores/useRoomStore';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useUIStore } from '../stores/useUIStore';
 import { useGameStore } from '../stores/useGameStore';
+import { api } from '../services/api';
 import GlassPanel from '../components/ui/GlassPanel';
 import Button from '../components/ui/Button';
 import { 
@@ -19,10 +20,20 @@ import {
 
 export const Lobby: React.FC = () => {
   const navigate = useNavigate();
+  const { roomId: roomCode } = useParams<{ roomId: string }>();
   
   const { user } = useAuthStore();
-  const { currentRoom, lobbyChat, ping, toggleReady, sendChatMessage, leaveRoom } = useRoomStore();
-  const { initGame } = useGameStore();
+  const { 
+    currentRoom, 
+    lobbyChat, 
+    ping, 
+    toggleReady, 
+    sendChatMessage, 
+    leaveRoom,
+    startPollingRoom,
+    stopPollingRoom
+  } = useRoomStore();
+  const { joinGame } = useGameStore();
   const { addToast } = useUIStore();
 
   const [messageText, setMessageText] = useState('');
@@ -56,7 +67,7 @@ export const Lobby: React.FC = () => {
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!messageText.trim() || !user) return;
-    sendChatMessage(user.id, messageText.trim());
+    sendChatMessage(messageText.trim());
     setMessageText('');
   };
 
@@ -67,21 +78,50 @@ export const Lobby: React.FC = () => {
     { position: 'EAST', label: 'East Partner' },
   ];
 
+  useEffect(() => {
+    if (roomCode) {
+      startPollingRoom(roomCode, (gameId) => {
+        joinGame(gameId);
+        addToast({
+          type: 'success',
+          title: 'Game Started',
+          message: 'The match has begun! Transitioning to game board...',
+        });
+        navigate(`/game/${gameId}`);
+      });
+    }
+    return () => {
+      stopPollingRoom();
+    };
+  }, [roomCode, startPollingRoom, stopPollingRoom, joinGame, navigate]);
+
   const handleReadyClick = () => {
     if (user) {
-      toggleReady(user.id);
+      toggleReady();
     }
   };
 
-  // Simulate bots joining after some time, or start game instantly for test
-  const handleStartGame = () => {
-    addToast({
-      type: 'info',
-      title: 'Game Launching',
-      message: 'Starting the match. Loading game board...',
-    });
-    initGame(currentRoom.code);
-    navigate(`/game/${currentRoom.code}`);
+  const handleStartGame = async () => {
+    if (!currentRoom) return;
+    try {
+      addToast({
+        type: 'info',
+        title: 'Launching Game',
+        message: 'Starting the match and creating game session...',
+      });
+      const response = await api.rooms.start(currentRoom.code);
+      if (response.success && response.data) {
+        const { gameId } = response.data;
+        joinGame(gameId);
+        navigate(`/game/${gameId}`);
+      }
+    } catch (err: any) {
+      addToast({
+        type: 'error',
+        title: 'Launch Failed',
+        message: err.message || 'Could not start game.',
+      });
+    }
   };
 
   return (

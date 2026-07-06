@@ -27,7 +27,7 @@ export const Game: React.FC = () => {
     statusText, 
     isYourTurn, 
     timerCount,
-    initGame,
+    joinGame,
     placeBid,
     passBid,
     selectTrump,
@@ -37,7 +37,6 @@ export const Game: React.FC = () => {
     declarePair,
     declareDouble,
     declareRedouble,
-    toggleTrumpMode,
     resetGame
   } = useGameStore();
 
@@ -48,11 +47,13 @@ export const Game: React.FC = () => {
   const [pairAnimationActive, setPairAnimationActive] = useState(false);
 
   useEffect(() => {
-    // If game state is empty, initialize it locally
-    if (!gameState && roomId) {
-      initGame(roomId);
+    if (roomId) {
+      joinGame(roomId);
     }
-  }, [roomId, gameState, initGame]);
+    return () => {
+      resetGame();
+    };
+  }, [roomId, joinGame, resetGame]);
 
   const handleExit = () => {
     if (confirm("Are you sure you want to exit the current card table?")) {
@@ -107,12 +108,11 @@ export const Game: React.FC = () => {
 
         {/* Scores, game mode toggle & audio toggles */}
         <div className="flex items-center space-x-4">
-          <button 
-            onClick={toggleTrumpMode}
-            className="px-3 py-1.5 rounded-xl bg-premium-gray/60 border border-gold-500/10 hover:border-gold-500 hover:text-gold-400 text-xs font-black text-gold-500/80 cursor-pointer transition-all uppercase tracking-wider"
+          <div 
+            className="px-3 py-1.5 rounded-xl bg-premium-gray/60 border border-gold-500/10 text-xs font-black text-gold-500/80 uppercase tracking-wider"
           >
             Mode: {gameState.isJokerTrump ? 'Joker' : '7th Card'}
-          </button>
+          </div>
 
           <div className="flex items-center space-x-2 bg-premium-gray/60 border border-gold-500/10 px-3 py-1.5 rounded-xl text-xs font-bold">
             <span className="text-red-400">RED: {gameState.matchScores.redTeam}</span>
@@ -605,7 +605,6 @@ export const Game: React.FC = () => {
                 {/* Joker Card Option */}
                 <button
                   onClick={() => {
-                    toggleTrumpMode(); // Switches to Joker mode!
                     const seventhCardSuit = gameState.hands?.SOUTH[6]?.suit || 'SPADES';
                     selectTrump(seventhCardSuit);
                     closeModal();
@@ -695,7 +694,7 @@ export const Game: React.FC = () => {
               </Button>
               <Button 
                 variant="gold" 
-                onClick={() => { closeModal(); initGame(roomId!); }}
+                onClick={() => { closeModal(); resetGame(); navigate('/lobby/' + (gameState.roomCode || '')); }}
                 className="flex-1"
                 glow
               >

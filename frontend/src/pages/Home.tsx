@@ -4,6 +4,7 @@ import { useAuthStore } from '../stores/useAuthStore';
 import { useRoomStore } from '../stores/useRoomStore';
 import { useGameStore } from '../stores/useGameStore';
 import { useUIStore } from '../stores/useUIStore';
+import { api } from '../services/api';
 import GlassPanel from '../components/ui/GlassPanel';
 import Button from '../components/ui/Button';
 import { 
@@ -18,7 +19,7 @@ export const Home: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { createRoom, joinRoom } = useRoomStore();
-  const { initGame } = useGameStore();
+  const { joinGame } = useGameStore();
   const { addToast } = useUIStore();
 
   const [joinCode, setJoinCode] = useState('');
@@ -29,7 +30,7 @@ export const Home: React.FC = () => {
     if (!user) return;
     setActionLoading(true);
     try {
-      const code = await createRoom(user.username, user.avatar);
+      const code = await createRoom(true);
       addToast({
         type: 'success',
         title: 'Lobby Created',
@@ -52,7 +53,7 @@ export const Home: React.FC = () => {
     if (!user || !joinCode) return;
     setActionLoading(true);
     try {
-      const success = await joinRoom(joinCode.toUpperCase(), user.username, user.avatar);
+      const success = await joinRoom(joinCode.toUpperCase());
       if (success) {
         addToast({
           type: 'success',
@@ -79,18 +80,30 @@ export const Home: React.FC = () => {
     }
   };
 
-  const startPractice = () => {
+  const startPractice = async () => {
     setActionLoading(true);
     addToast({
       type: 'info',
       title: 'Practice Started',
       message: 'Launching practice arena against AI bots...',
     });
-    setTimeout(() => {
-      initGame('local_practice');
-      navigate('/game/local_practice');
+    try {
+      const code = await createRoom(true);
+      const response = await api.rooms.start(code);
+      if (response.success && response.data) {
+        const { gameId } = response.data;
+        joinGame(gameId);
+        navigate(`/game/${gameId}`);
+      }
+    } catch (err) {
+      addToast({
+        type: 'error',
+        title: 'Error',
+        message: 'Could not launch practice game.',
+      });
+    } finally {
       setActionLoading(false);
-    }, 1000);
+    }
   };
 
   return (

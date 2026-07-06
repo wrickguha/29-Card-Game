@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import type { Player, Room } from '../types/game';
+import { api } from '../services/api';
+import type { Room } from '../types/game';
 
 interface ChatMessage {
   id: string;
@@ -12,168 +13,214 @@ interface ChatMessage {
 interface RoomStoreState {
   currentRoom: Room | null;
   lobbyChat: ChatMessage[];
-  searchRooms: Room[];
   ping: number;
+  pollIntervalId: any | null;
   
-  createRoom: (hostName: string, hostAvatar: string) => Promise<string>;
-  joinRoom: (roomCode: string, playerName: string, playerAvatar: string) => Promise<boolean>;
-  leaveRoom: () => void;
-  toggleReady: (playerId: string) => void;
-  sendChatMessage: (senderId: string, message: string) => void;
+  createRoom: (isPrivate?: boolean, trumpMode?: 'SEVENTH_CARD' | 'JOKER') => Promise<string>;
+  joinRoom: (roomCode: string) => Promise<boolean>;
+  leaveRoom: () => Promise<void>;
+  toggleReady: () => Promise<void>;
+  sendChatMessage: (message: string) => Promise<void>;
   setPing: (ping: number) => void;
+  startPollingRoom: (code: string, onGameStarted: (gameId: string) => void) => void;
+  stopPollingRoom: () => void;
 }
 
-export const useRoomStore = create<RoomStoreState>((set) => ({
-  currentRoom: null,
-  lobbyChat: [],
-  searchRooms: [],
-  ping: 45,
+export const useRoomStore = create<RoomStoreState>((set, get) => {
+  return {
+    currentRoom: null,
+    lobbyChat: [],
+    ping: 45,
+    pollIntervalId: null,
 
-  createRoom: async (hostName, hostAvatar) => {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const hostPlayer: Player = {
-      id: 'usr_1',
-      name: hostName,
-      avatar: hostAvatar,
-      position: 'SOUTH',
-      isHost: true,
-      isReady: false,
-      isOnline: true,
-      ping: 42,
-    };
-    const newRoom: Room = {
-      id: `room_${Date.now()}`,
-      code: roomCode,
-      hostId: hostPlayer.id,
-      players: [hostPlayer],
-      status: 'LOBBY',
-      maxPlayers: 4,
-    };
-    
-    set({
-      currentRoom: newRoom,
-      lobbyChat: [{
-        id: 'msg_welcome',
-        senderName: 'SYSTEM',
-        senderPosition: 'NORTH',
-        message: `Welcome to the Royal Club Lobby! Room code: ${roomCode}. Share it with friends to play.`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      }],
-    });
-    return roomCode;
-  },
+    createRoom: async (isPrivate = true, trumpMode = 'SEVENTH_CARD') => {
+      const response = await api.rooms.create({ is_private: isPrivate, trump_mode: trumpMode });
+      if (response.success && response.data) {
+        const roomData = response.data;
+        
+        // Map backend Room player models to frontend Player type
+        const players = (roomData.players || []).map((p: any) => ({
+          id: p.user.id.toString(),
+          name: p.user.username,
+          avatar: p.user.avatar,
+          position: p.position,
+          isHost: p.user.id.toString() === roomData.host_id.toString(),
+          isReady: !!p.is_ready,
+          isOnline: !!p.is_connected,
+        }));
 
-  joinRoom: async (roomCode, playerName, playerAvatar) => {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    // Simulate finding room and joining
-    const hostPlayer: Player = {
-      id: 'usr_host',
-      name: 'GrandMaster29',
-      avatar: 'emerald_knight',
-      position: 'NORTH',
-      isHost: true,
-      isReady: true,
-      isOnline: true,
-      ping: 58,
-    };
-    const playerSelf: Player = {
-      id: 'usr_1',
-      name: playerName,
-      avatar: playerAvatar,
-      position: 'SOUTH',
-      isHost: false,
-      isReady: false,
-      isOnline: true,
-      ping: 42,
-    };
-    const playerEast: Player = {
-      id: 'usr_east',
-      name: 'SilentBluff',
-      avatar: 'ruby_queen',
-      position: 'EAST',
-      isHost: false,
-      isReady: false,
-      isOnline: true,
-      ping: 72,
-    };
-    
-    const joinedRoom: Room = {
-      id: 'room_mock_123',
-      code: roomCode,
-      hostId: hostPlayer.id,
-      players: [hostPlayer, playerSelf, playerEast],
-      status: 'LOBBY',
-      maxPlayers: 4,
-    };
+        const newRoom: Room = {
+          id: roomData.id.toString(),
+          code: roomData.code,
+          hostId: roomData.host_id.toString(),
+          players,
+          status: roomData.status,
+          maxPlayers: roomData.max_players,
+        };
 
-    set({
-      currentRoom: joinedRoom,
-      lobbyChat: [
-        {
-          id: 'msg_system_init',
-          senderName: 'SYSTEM',
-          senderPosition: 'NORTH',
-          message: 'Connected to game server. Waiting for players to join...',
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        },
-        {
-          id: 'msg_1',
-          senderName: 'GrandMaster29',
-          senderPosition: 'NORTH',
-          message: 'Welcome guys! Let\'s declare a double if we get jack of trumps.',
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        },
-        {
-          id: 'msg_system_joined',
-          senderName: 'SYSTEM',
-          senderPosition: 'NORTH',
-          message: `${playerName} has joined the room.`,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        set({
+          currentRoom: newRoom,
+          lobbyChat: roomData.chats || [],
+        });
+        return roomData.code;
+      }
+      throw new Error(response.message || 'Could not create room');
+    },
+
+    joinRoom: async (roomCode) => {
+      try {
+        const response = await api.rooms.join(roomCode);
+        if (response.success && response.data) {
+          const roomData = response.data;
+          const players = (roomData.players || []).map((p: any) => ({
+            id: p.user.id.toString(),
+            name: p.user.username,
+            avatar: p.user.avatar,
+            position: p.position,
+            isHost: p.user.id.toString() === roomData.host_id.toString(),
+            isReady: !!p.is_ready,
+            isOnline: !!p.is_connected,
+          }));
+
+          const joinedRoom: Room = {
+            id: roomData.id.toString(),
+            code: roomData.code,
+            hostId: roomData.host_id.toString(),
+            players,
+            status: roomData.status,
+            maxPlayers: roomData.max_players,
+          };
+
+          set({
+            currentRoom: joinedRoom,
+            lobbyChat: roomData.chats || [],
+          });
+          return true;
         }
-      ],
-    });
-    return true;
-  },
+        return false;
+      } catch (err) {
+        console.error('Join room error', err);
+        return false;
+      }
+    },
 
-  leaveRoom: () => {
-    set({ currentRoom: null, lobbyChat: [] });
-  },
-
-  toggleReady: (playerId) => {
-    set((state) => {
-      if (!state.currentRoom) return state;
-      const updatedPlayers = state.currentRoom.players.map((p) => {
-        if (p.id === playerId) {
-          return { ...p, isReady: !p.isReady };
+    leaveRoom: async () => {
+      const room = get().currentRoom;
+      if (room) {
+        try {
+          await api.rooms.leave(room.code);
+        } catch (err) {
+          console.error('Leave room error', err);
         }
-        return p;
-      });
-      return {
-        currentRoom: {
-          ...state.currentRoom,
-          players: updatedPlayers,
-        },
-      };
-    });
-  },
+      }
+      get().stopPollingRoom();
+      set({ currentRoom: null, lobbyChat: [] });
+    },
 
-  sendChatMessage: (senderId, message) => {
-    set((state) => {
-      if (!state.currentRoom) return state;
-      const sender = state.currentRoom.players.find((p) => p.id === senderId);
-      const newMsg: ChatMessage = {
-        id: `msg_${Date.now()}`,
-        senderName: sender ? sender.name : 'You',
-        senderPosition: sender ? sender.position : 'SOUTH',
-        message,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-      return {
-        lobbyChat: [...state.lobbyChat, newMsg],
-      };
-    });
-  },
+    toggleReady: async () => {
+      const room = get().currentRoom;
+      if (!room) return;
 
-  setPing: (ping) => set({ ping }),
-}));
+      try {
+        const response = await api.rooms.toggleReady(room.code);
+        if (response.success && response.data) {
+          const roomData = response.data;
+          const players = (roomData.players || []).map((p: any) => ({
+            id: p.user.id.toString(),
+            name: p.user.username,
+            avatar: p.user.avatar,
+            position: p.position,
+            isHost: p.user.id.toString() === roomData.host_id.toString(),
+            isReady: !!p.is_ready,
+            isOnline: !!p.is_connected,
+          }));
+
+          set({
+            currentRoom: {
+              ...room,
+              players,
+            },
+          });
+        }
+      } catch (err) {
+        console.error('Toggle ready error', err);
+      }
+    },
+
+    sendChatMessage: async (message) => {
+      const room = get().currentRoom;
+      if (!room) return;
+
+      try {
+        const response = await api.rooms.sendChat(room.code, message);
+        if (response.success && response.data) {
+          const newMsg = response.data;
+          set((state) => ({
+            lobbyChat: [...state.lobbyChat, newMsg],
+          }));
+        }
+      } catch (err) {
+        console.error('Send chat message error', err);
+      }
+    },
+
+    setPing: (ping) => set({ ping }),
+
+    startPollingRoom: (code, onGameStarted) => {
+      get().stopPollingRoom();
+
+      const fetchRoomState = async () => {
+        try {
+          const response = await api.rooms.get(code);
+          if (response.success && response.data) {
+            const roomData = response.data;
+            const players = (roomData.players || []).map((p: any) => ({
+              id: p.user.id.toString(),
+              name: p.user.username,
+              avatar: p.user.avatar,
+              position: p.position,
+              isHost: p.user.id.toString() === roomData.host_id.toString(),
+              isReady: !!p.is_ready,
+              isOnline: !!p.is_connected,
+            }));
+
+            const polledRoom: Room = {
+              id: roomData.id.toString(),
+              code: roomData.code,
+              hostId: roomData.host_id.toString(),
+              players,
+              status: roomData.status,
+              maxPlayers: roomData.max_players,
+            };
+
+            set({
+              currentRoom: polledRoom,
+              lobbyChat: roomData.chats || [],
+            });
+
+            // If game is started and we have a game relationship loaded
+            if (roomData.status === 'PLAYING' && roomData.game) {
+              get().stopPollingRoom();
+              onGameStarted(roomData.game.id.toString());
+            }
+          }
+        } catch (err) {
+          console.error('Error polling room state', err);
+        }
+      };
+
+      // Poll immediately and then every 1.5 seconds
+      fetchRoomState();
+      const intervalId = setInterval(fetchRoomState, 1500);
+      set({ pollIntervalId: intervalId });
+    },
+
+    stopPollingRoom: () => {
+      const intervalId = get().pollIntervalId;
+      if (intervalId) {
+        clearInterval(intervalId);
+        set({ pollIntervalId: null });
+      }
+    },
+  };
+});

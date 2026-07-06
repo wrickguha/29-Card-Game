@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useUIStore } from '../stores/useUIStore';
 import GlassPanel from '../components/ui/GlassPanel';
@@ -20,9 +20,13 @@ const AVATAR_OPTIONS = [
 ];
 
 export const Profile: React.FC = () => {
-  const { user, updateAvatar } = useAuthStore();
+  const { user, updateAvatar, fetchMe } = useAuthStore();
   const { addToast } = useUIStore();
   const [editingAvatar, setEditingAvatar] = useState(false);
+
+  useEffect(() => {
+    fetchMe();
+  }, [fetchMe]);
 
   if (!user) return <div className="text-center py-12 text-slate-500 font-bold">Please sign in to view your profile.</div>;
 
